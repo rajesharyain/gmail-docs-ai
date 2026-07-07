@@ -1,0 +1,94 @@
+{
+  "name": "gmail-docs-ai",
+  "version": "0.1.0",
+  "description": "macOS menu bar assistant for Gmail, attachments, and Google Drive document cleanup",
+  "main": "out/main/index.js",
+  "author": "Ravi",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "test": "node --import tsx --test \"tests/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "package": "npm run package:unsigned",
+    "package:unsigned": "electron-vite build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac",
+    "package:release": "electron-vite build && electron-builder --mac",
+    "verify:package": "node scripts/verify-package.cjs",
+    "changelog": "node scripts/generate-changelog.cjs"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/sql.js": "^1.4.11",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "tsx": "^4.23.0",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  },
+  "dependencies": {
+    "@azure/msal-node": "^5.3.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sql.js": "^1.14.1"
+  },
+  "build": {
+    "appId": "dev.ravi.gmail-docs-ai",
+    "productName": "Gmail Docs AI",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "build/icon.png",
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "gatekeeperAssess": false,
+      "extendInfo": {
+        "LSUIElement": true
+      }
+    },
+    "afterSign": "scripts/notarize.cjs",
+    "dmg": {
+      "title": "Gmail Docs AI"
+    },
+    "extraResources": [
+      {
+        "from": "build/trayTemplate.png",
+        "to": "trayTemplate.png"
+      },
+      {
+        "from": "build/trayTemplate@2x.png",
+        "to": "trayTemplate@2x.png"
+      },
+      {
+        "from": "node_modules/sql.js/dist/sql-wasm.wasm",
+        "to": "sql-wasm.wasm"
+      }
+    ],
+    "files": [
+      "out/**/*",
+      "package.json",
+      "node_modules/sql.js/package.json",
+      "node_modules/sql.js/dist/sql-wasm.js",
+      "!node_modules/sql.js/.devcontainer/**/*",
+      "!node_modules/sql.js/documentation/**/*",
+      "!node_modules/sql.js/test/**/*",
+      "!node_modules/sql.js/*.md",
+      "!node_modules/sql.js/*.svg",
+      "!node_modules/sql.js/*.cjs",
+      "!node_modules/sql.js/*.js",
+      "!node_modules/sql.js/AUTHORS"
+    ]
+  }
+}
