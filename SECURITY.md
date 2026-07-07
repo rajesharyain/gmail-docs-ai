@@ -1,16 +1,16 @@
 # Security Policy
 
-Outlook Notifier handles Microsoft account tokens and email metadata, so security reports are welcome.
+Gmail Docs AI handles Google OAuth tokens and email metadata, so security
+reports are welcome.
 
-## Reporting a Vulnerability
+Please do not open public issues for token handling, OAuth redirect, IPC,
+storage, or packaged-app security concerns. Share a private report with enough
+detail to reproduce the problem.
 
-Please do not open a public issue for sensitive security problems. Instead, contact the maintainer privately and include:
+## Current Data Handling
 
-- A clear description of the issue
-- Steps to reproduce
-- Potential impact
-- Any suggested mitigation
-
-## Sensitive Data
-
-Do not commit `.env` files, signing certificates, provisioning profiles, token caches, app user-data folders, or production secrets.
+- Google tokens are stored in the app user-data directory and encrypted with
+  Electron `safeStorage` when available.
+- Email cache data is stored locally on the Mac.
+- AI provider credentials are stored locally and are not shown back in the UI.
+- Cloud AI processing is opt-in and guarded by privacy settings.

@@ -114,12 +114,11 @@ test('validates AI credential IPC payloads', () => {
   assert.equal(sanitizeCredentialSave({ provider: 'custom', token: '   ' }), null)
 })
 
-test('allows only trusted Microsoft mail web links', () => {
-  assert.equal(isTrustedExternalEmailLink('https://outlook.office.com/mail/id'), true)
-  assert.equal(isTrustedExternalEmailLink('https://mail.outlook.office.com/mail/id'), true)
-  assert.equal(isTrustedExternalEmailLink('https://outlook.live.com/mail/id'), true)
-  assert.equal(isTrustedExternalEmailLink('https://outlook.office365.com/mail/id'), true)
-  assert.equal(isTrustedExternalEmailLink('http://outlook.office.com/mail/id'), false)
+test('allows only trusted Gmail web links', () => {
+  assert.equal(isTrustedExternalEmailLink('https://mail.google.com/mail/u/0/#all/id'), true)
+  assert.equal(isTrustedExternalEmailLink('https://mail.google.com/mail/u/0/#inbox/id'), true)
+  assert.equal(isTrustedExternalEmailLink('http://mail.google.com/mail/u/0/#all/id'), false)
+  assert.equal(isTrustedExternalEmailLink('https://accounts.google.com/mail/id'), false)
   assert.equal(isTrustedExternalEmailLink('https://evil.example.com/mail/id'), false)
   assert.equal(isTrustedExternalEmailLink('not a url'), false)
 })

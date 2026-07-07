@@ -43,7 +43,7 @@ test('markRead removes the email from state, decrements unread count, and suppre
     ['2']
   )
   assert.equal(state.unreadCount, 1)
-  // The regression this covers: without this, Graph's read-status lag means
+  // The regression this covers: without this, provider read-status lag means
   // the very next sync (including on app restart) re-fetches the message as
   // if it were never marked read, and it reappears.
   assert.deepEqual(suppressedIds, ['1'])
@@ -60,7 +60,7 @@ test('markRead is a no-op when there is no access token', async (t) => {
   assert.deepEqual(suppressedIds, [])
 })
 
-test('markRead leaves the email in place and does not suppress it when the Graph call fails', async (t) => {
+test('markRead leaves the email in place and does not suppress it when the Gmail call fails', async (t) => {
   t.mock.method(globalThis, 'fetch', (async () => jsonResponse({}, { status: 500 })) as typeof fetch)
   const { actions, getState, suppressedIds } = harness([email({ id: '1' })])
 
@@ -118,11 +118,12 @@ test('markAllVisibleRead is a no-op with an empty list', async (t) => {
   assert.equal(fetchMock.mock.callCount(), 0)
 })
 
-test('markAllVisibleRead only removes and suppresses the messages Graph confirmed, keeping failures visible', async (t) => {
-  t.mock.method(globalThis, 'fetch', (async (_input: RequestInfo | URL, init?: RequestInit) => {
-    const parsed = JSON.parse(String(init?.body)) as { requests: Array<{ id: string }> }
-    const responses = parsed.requests.map((r, i) => ({ id: r.id, status: i === 1 ? 400 : 200 }))
-    return jsonResponse({ responses })
+test('markAllVisibleRead only removes and suppresses the messages Gmail confirmed, keeping failures visible', async (t) => {
+  t.mock.method(globalThis, 'fetch', (async (input: RequestInfo | URL) => {
+    if (String(input).includes('/messages/b/modify')) {
+      return jsonResponse({ error: { message: 'Missing' } }, { status: 404 })
+    }
+    return jsonResponse({})
   }) as typeof fetch)
   const { actions, getState, suppressedIds } = harness([
     email({ id: 'a' }),
@@ -141,10 +142,7 @@ test('markAllVisibleRead only removes and suppresses the messages Graph confirme
 })
 
 test('markManyRead only acts on the given subset, not the whole visible list', async (t) => {
-  t.mock.method(globalThis, 'fetch', (async (_input: RequestInfo | URL, init?: RequestInit) => {
-    const parsed = JSON.parse(String(init?.body)) as { requests: Array<{ id: string }> }
-    return jsonResponse({ responses: parsed.requests.map((r) => ({ id: r.id, status: 200 })) })
-  }) as typeof fetch)
+  t.mock.method(globalThis, 'fetch', (async () => jsonResponse({})) as typeof fetch)
   const { actions, getState, suppressedIds } = harness([
     email({ id: 'a' }),
     email({ id: 'b' }),
@@ -180,13 +178,7 @@ test('archiveMany and deleteMany act sequentially on a given subset', async (t) 
 })
 
 test('bulkAction dispatches to the matching action for each kind', async (t) => {
-  t.mock.method(globalThis, 'fetch', (async (_input: RequestInfo | URL, init?: RequestInit) => {
-    if (init?.method === 'POST' && String(_input).endsWith('/$batch')) {
-      const parsed = JSON.parse(String(init?.body)) as { requests: Array<{ id: string }> }
-      return jsonResponse({ responses: parsed.requests.map((r) => ({ id: r.id, status: 200 })) })
-    }
-    return jsonResponse({})
-  }) as typeof fetch)
+  t.mock.method(globalThis, 'fetch', (async () => jsonResponse({})) as typeof fetch)
   const { actions, getState } = harness([
     email({ id: 'a' }),
     email({ id: 'b' }),
@@ -202,21 +194,24 @@ test('bulkAction dispatches to the matching action for each kind', async (t) => 
   )
 })
 
-test('search returns mapped results and swallows Graph errors as an empty list', async (t) => {
-  t.mock.method(globalThis, 'fetch', (async () =>
-    jsonResponse({
-      value: [
-        {
-          id: '1',
-          subject: 'Found',
-          bodyPreview: 'preview text',
-          receivedDateTime: '2026-01-01T00:00:00.000Z',
-          webLink: null,
-          isRead: true,
-          from: { emailAddress: { name: 'A', address: 'a@example.com' } }
-        }
-      ]
-    })) as typeof fetch)
+test('search returns mapped Gmail results and swallows errors as an empty list', async (t) => {
+  t.mock.method(globalThis, 'fetch', (async (input: RequestInfo | URL) => {
+    const url = String(input)
+    if (url.includes('/users/me/messages?')) return jsonResponse({ messages: [{ id: '1' }] })
+    return jsonResponse({
+      id: '1',
+      snippet: 'preview text',
+      internalDate: '1767225600000',
+      labelIds: ['INBOX'],
+      payload: {
+        headers: [
+          { name: 'From', value: 'A <a@example.com>' },
+          { name: 'Subject', value: 'Found' },
+          { name: 'Date', value: 'Thu, 01 Jan 2026 00:00:00 GMT' }
+        ]
+      }
+    })
+  }) as typeof fetch)
   const { actions } = harness([])
 
   const results = await actions.search('invoice')

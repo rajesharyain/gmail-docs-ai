@@ -14,30 +14,35 @@ function jsonResponse(body: unknown, init: ResponseInit = { status: 200 }): Resp
   return new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' }, ...init })
 }
 
-test('fetchInboxUnread maps Graph messages and sorts newest first', async (t) => {
+function gmailMessage(id: string, subject: string, internalDate: string, labels = ['INBOX', 'UNREAD']) {
+  return {
+    id,
+    snippet: `${subject} preview`,
+    internalDate,
+    labelIds: labels,
+    payload: {
+      headers: [
+        { name: 'From', value: `"Sender ${id}" <sender-${id}@example.com>` },
+        { name: 'Subject', value: subject },
+        { name: 'Date', value: new Date(Number(internalDate)).toUTCString() }
+      ]
+    }
+  }
+}
+
+test('fetchInboxUnread maps Gmail messages and sorts newest first', async (t) => {
   t.mock.method(globalThis, 'fetch', (async (input: RequestInfo | URL) => {
     const url = String(input)
-    if (url.includes('unreadItemCount')) return jsonResponse({ unreadItemCount: 5 })
-    return jsonResponse({
-      value: [
-        {
-          id: '1',
-          subject: 'Older',
-          bodyPreview: 'a',
-          receivedDateTime: '2026-01-01T00:00:00.000Z',
-          webLink: null,
-          from: { emailAddress: { name: 'A', address: 'a@example.com' } }
-        },
-        {
-          id: '2',
-          subject: 'Newer',
-          bodyPreview: 'b',
-          receivedDateTime: '2026-01-02T00:00:00.000Z',
-          webLink: null,
-          from: { emailAddress: { name: 'B', address: 'b@example.com' } }
-        }
-      ]
-    })
+    if (url.endsWith('/users/me/labels/UNREAD')) return jsonResponse({ messagesUnread: 5 })
+    if (url.includes('/users/me/messages?')) {
+      assert.match(url, /labelIds=INBOX/)
+      assert.match(url, /labelIds=UNREAD/)
+      return jsonResponse({ messages: [{ id: '1' }, { id: '2' }], resultSizeEstimate: 2 })
+    }
+    if (url.endsWith('/users/me/messages/1?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date')) {
+      return jsonResponse(gmailMessage('1', 'Older', '1767225600000'))
+    }
+    return jsonResponse(gmailMessage('2', 'Newer', '1767312000000'))
   }) as typeof fetch)
 
   const snapshot = await fetchInboxUnread('token')
@@ -47,10 +52,13 @@ test('fetchInboxUnread maps Graph messages and sorts newest first', async (t) =>
     snapshot.emails.map((e) => e.id),
     ['2', '1']
   )
+  assert.equal(snapshot.emails[0].sender, 'Sender 2')
+  assert.equal(snapshot.emails[0].senderAddress, 'sender-2@example.com')
   assert.equal(snapshot.emails[0].isRead, false)
+  assert.equal(snapshot.emails[0].webLink, 'https://mail.google.com/mail/u/0/#all/2')
 })
 
-test('markMessageRead PATCHes isRead=true to the message endpoint', async (t) => {
+test('markMessageRead removes the Gmail UNREAD label', async (t) => {
   let method = ''
   let url = ''
   let body: unknown = null
@@ -66,13 +74,13 @@ test('markMessageRead PATCHes isRead=true to the message endpoint', async (t) =>
 
   await markMessageRead('token-1', 'msg-1')
 
-  assert.equal(method, 'PATCH')
-  assert.equal(url, 'https://graph.microsoft.com/v1.0/me/messages/msg-1')
-  assert.deepEqual(body, { isRead: true })
+  assert.equal(method, 'POST')
+  assert.equal(url, 'https://gmail.googleapis.com/gmail/v1/users/me/messages/msg-1/modify')
+  assert.deepEqual(body, { removeLabelIds: ['UNREAD'] })
   assert.equal(authorization, 'Bearer token-1')
 })
 
-test('archiveMessage POSTs a move to the archive folder', async (t) => {
+test('archiveMessage removes the Gmail INBOX label', async (t) => {
   let url = ''
   let body: unknown = null
 
@@ -84,11 +92,11 @@ test('archiveMessage POSTs a move to the archive folder', async (t) => {
 
   await archiveMessage('token', 'msg-2')
 
-  assert.equal(url, 'https://graph.microsoft.com/v1.0/me/messages/msg-2/move')
-  assert.deepEqual(body, { destinationId: 'archive' })
+  assert.equal(url, 'https://gmail.googleapis.com/gmail/v1/users/me/messages/msg-2/modify')
+  assert.deepEqual(body, { removeLabelIds: ['INBOX'] })
 })
 
-test('deleteMessage DELETEs the message with no body', async (t) => {
+test('deleteMessage moves the Gmail message to trash', async (t) => {
   let method = ''
   let url = ''
   let hadContentType = false
@@ -97,62 +105,43 @@ test('deleteMessage DELETEs the message with no body', async (t) => {
     method = String(init?.method)
     url = String(input)
     hadContentType = Boolean((init?.headers as Record<string, string> | undefined)?.['Content-Type'])
-    return new Response(null, { status: 204 })
+    return jsonResponse({})
   }) as typeof fetch)
 
   await deleteMessage('token', 'msg-3')
 
-  assert.equal(method, 'DELETE')
-  assert.equal(url, 'https://graph.microsoft.com/v1.0/me/messages/msg-3')
+  assert.equal(method, 'POST')
+  assert.equal(url, 'https://gmail.googleapis.com/gmail/v1/users/me/messages/msg-3/trash')
   assert.equal(hadContentType, false)
 })
 
-test('markMessagesRead chunks at 20 requests per batch and reports per-item results', async (t) => {
-  const ids = Array.from({ length: 25 }, (_, i) => `msg-${i}`)
-  const batchSizes: number[] = []
-
-  t.mock.method(globalThis, 'fetch', (async (_input: RequestInfo | URL, init?: RequestInit) => {
-    const parsed = JSON.parse(String(init?.body)) as { requests: Array<{ id: string }> }
-    batchSizes.push(parsed.requests.length)
-    // Fail the last item of each batch, succeed the rest.
-    const responses = parsed.requests.map((r, i) => ({
-      id: r.id,
-      status: i === parsed.requests.length - 1 ? 400 : 200
-    }))
-    return jsonResponse({ responses })
+test('markMessagesRead reports per-message success and failure', async (t) => {
+  t.mock.method(globalThis, 'fetch', (async (input: RequestInfo | URL) => {
+    const url = String(input)
+    if (url.includes('bad')) return jsonResponse({ error: { message: 'Missing' } }, { status: 404 })
+    return jsonResponse({})
   }) as typeof fetch)
 
-  const result = await markMessagesRead('token', ids)
+  const result = await markMessagesRead('token', ['good-1', 'bad-1', 'good-2'])
 
-  assert.deepEqual(batchSizes, [20, 5])
-  assert.equal(result.succeededIds.length, 23)
-  assert.equal(result.failedIds.length, 2)
-  assert.equal(result.failedIds[0], 'msg-19')
-  assert.equal(result.failedIds[1], 'msg-24')
+  assert.deepEqual(result.succeededIds, ['good-1', 'good-2'])
+  assert.deepEqual(result.failedIds, ['bad-1'])
 })
 
-test('searchMessages passes through the real isRead value instead of hardcoding false', async (t) => {
-  let url = ''
+test('searchMessages uses Gmail q search and maps read state', async (t) => {
+  let searchUrl = ''
   t.mock.method(globalThis, 'fetch', (async (input: RequestInfo | URL) => {
-    url = String(input)
-    return jsonResponse({
-      value: [
-        {
-          id: '1',
-          subject: 'Found it',
-          bodyPreview: 'preview',
-          receivedDateTime: '2026-01-01T00:00:00.000Z',
-          webLink: null,
-          isRead: true,
-          from: { emailAddress: { name: 'A', address: 'a@example.com' } }
-        }
-      ]
-    })
+    const url = String(input)
+    if (url.includes('/users/me/messages?')) {
+      searchUrl = url
+      return jsonResponse({ messages: [{ id: '1' }] })
+    }
+    return jsonResponse(gmailMessage('1', 'Found it', '1767225600000', ['INBOX']))
   }) as typeof fetch)
 
-  const results = await searchMessages('token', 'invoice')
+  const results = await searchMessages('token', 'invoice has:attachment')
 
-  assert.match(url, /\$search=/)
+  assert.match(searchUrl, /q=invoice\+has%3Aattachment/)
   assert.equal(results[0].isRead, true)
 })
 
@@ -180,6 +169,5 @@ test('retries once after a 429 and then succeeds', async (t) => {
   }) as typeof fetch)
 
   await markMessageRead('token', 'msg-1')
-
   assert.equal(calls, 2)
 })

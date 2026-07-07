@@ -8,8 +8,8 @@ import {
 } from './graph'
 import type { EmailActionKind, EmailSummary, InboxState } from '../shared/types'
 
-/** Only the slice of AuthManager these actions need — keeps this testable
- *  without a real MSAL-backed AuthManager instance. */
+/** Only the slice of AuthManager these actions need - keeps this testable
+ *  without a real Google OAuth-backed AuthManager instance. */
 export interface TokenProvider {
   getAccessToken(): Promise<string | null>
 }
@@ -18,9 +18,9 @@ interface EmailActionsOptions {
   auth: TokenProvider
   getState: () => InboxState
   setState: (patch: Partial<InboxState>) => void
-  /** Suppresses this id from future syncs until Graph confirms the change —
-   *  the same mechanism EmailOpener uses (SyncEngine.markOpened). Graph's
-   *  filtered queries lag real read-status/folder changes by a short
+  /** Suppresses this id from future syncs until Gmail confirms the change -
+   *  the same mechanism EmailOpener uses (SyncEngine.markOpened). Gmail's
+   *  filtered queries can lag real read-status/folder changes by a short
    *  window, so without this the very next sync (including on app
    *  restart) re-fetches the message as if nothing happened. */
   markSuppressed: (id: string) => void
@@ -31,10 +31,10 @@ interface EmailActionsOptions {
 }
 
 /**
- * Direct Graph writes with immediate optimistic removal — a different
+ * Direct Gmail writes with immediate optimistic removal - a different
  * concern from EmailOpener, which hands off to an external client and waits
- * for Graph to catch up on its own schedule. These calls ARE the source of
- * truth changing, but Graph's read model still takes a moment to catch up,
+ * for Gmail to catch up on its own schedule. These calls ARE the source of
+ * truth changing, but Gmail's read model can still take a moment to catch up,
  * so the id needs the same post-write suppression EmailOpener relies on.
  */
 export class EmailActions {
@@ -60,7 +60,7 @@ export class EmailActions {
   }
 
   /** Batched mark-read for an arbitrary id set (e.g. a checkbox selection),
-   *  reusing the same Graph batching `markAllVisibleRead` is built on. */
+   *  reusing the same Gmail modify path `markAllVisibleRead` is built on. */
   async markManyRead(ids: string[]): Promise<void> {
     if (ids.length === 0) return
     const token = await this.options.auth.getAccessToken()

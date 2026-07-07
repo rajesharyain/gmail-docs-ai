@@ -1,6 +1,6 @@
 import type { AIProviderId, EmailActionKind, Settings } from '../shared/types'
 import { normalizeAISettings, normalizeRulesSettings } from '../shared/settings'
-import { isTrustedMicrosoftMailLink } from './microsoftMail'
+import { isTrustedGoogleMailLink } from './googleMail'
 
 const SETTING_KEYS = new Set([
   'pollIntervalMinutes',
@@ -98,4 +98,4 @@ export function sanitizeCredentialSave(input: unknown): { provider: Exclude<AIPr
   return token ? { provider: value.provider, token } : null
 }
 
-export const isTrustedExternalEmailLink = isTrustedMicrosoftMailLink
+export const isTrustedExternalEmailLink = isTrustedGoogleMailLink

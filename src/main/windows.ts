@@ -49,7 +49,7 @@ export class WindowManager {
 
   private createTray(): void {
     this.tray = new Tray(this.createTrayImage())
-    this.tray.setToolTip('PostMail AI')
+    this.tray.setToolTip('Gmail Docs AI')
     this.tray.on('click', () => this.togglePopup())
     this.tray.on('right-click', () => this.showTrayMenu())
   }
@@ -128,7 +128,7 @@ export class WindowManager {
 
     if (state.status === 'signed-out' || state.status === 'signing-in') {
       this.tray.setTitle('')
-      this.tray.setToolTip('PostMail AI')
+      this.tray.setToolTip('Gmail Docs AI')
       return
     }
 
@@ -136,17 +136,17 @@ export class WindowManager {
     this.tray.setTitle(state.unreadCount > 0 ? unread : '')
     this.tray.setToolTip(
       state.newCount > 0
-        ? `PostMail AI: ${state.unreadCount} unread, ${state.newCount} new`
-        : `PostMail AI: ${state.unreadCount} unread`
+        ? `Gmail Docs AI: ${state.unreadCount} unread, ${state.newCount} new`
+        : `Gmail Docs AI: ${state.unreadCount} unread`
     )
   }
 
   private showTrayMenu(): void {
     if (!this.tray) return
     const menu = Menu.buildFromTemplate([
-      { label: 'Open PostMail AI', click: () => this.showPopup() },
+      { label: 'Open Gmail Docs AI', click: () => this.showPopup() },
       { type: 'separator' },
-      { role: 'quit', label: 'Quit PostMail AI' }
+      { role: 'quit', label: 'Quit Gmail Docs AI' }
     ])
     this.tray.popUpContextMenu(menu)
   }

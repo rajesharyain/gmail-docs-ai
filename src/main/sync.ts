@@ -9,7 +9,7 @@ const CACHE_FILE = 'inbox-cache.json'
 const SEEN_FILE = 'seen-ids.json'
 /** Cap the persisted seen-set so it can't grow forever. */
 const SEEN_LIMIT = 500
-/** How long an opened email stays suppressed if Graph keeps returning it as
+/** How long an opened email stays suppressed if Gmail keeps returning it as
  *  unread (covers the user marking it unread again on purpose). */
 const OPENED_TTL_MS = 30 * 60_000
 const MIN_RETRY_MS = 30_000
@@ -38,8 +38,8 @@ export class SyncEngine {
   /** Ids present in the previous successful sync — the notification baseline. */
   private lastSyncIds: Set<string> | null = null
   /**
-   * Emails the user opened from the app, mapped to when. Graph's filtered
-   * queries lag behind read-status changes, so these stay hidden until Graph
+   * Emails the user opened from the app, mapped to when. Gmail's filtered
+   * queries can lag behind read-status changes, so these stay hidden until Gmail
    * stops returning them (or the TTL passes).
    */
   private openedIds = new Map<string, number>()
@@ -107,7 +107,7 @@ export class SyncEngine {
 
       const snapshot = await fetchInboxUnread(token)
 
-      // Prune opened-ids that Graph has caught up on (no longer returned as
+      // Prune opened-ids that Gmail has caught up on (no longer returned as
       // unread) or that outlived the TTL.
       const returnedIds = new Set(snapshot.emails.map((e) => e.id))
       for (const [id, openedAt] of this.openedIds) {
@@ -183,7 +183,7 @@ export class SyncEngine {
     writeJson(SEEN_FILE, [...this.seenIds])
   }
 
-  /** User opened this email from the app — suppress it until Graph confirms. */
+  /** User opened this email from the app - suppress it until Gmail confirms. */
   markOpened(id: string): void {
     this.openedIds.set(id, Date.now())
   }
@@ -218,19 +218,19 @@ export class SyncEngine {
 function friendlySyncError(err: unknown): string {
   if (err instanceof GraphError) {
     if (err.status === 401 || err.status === 403) {
-      return 'Microsoft Mail denied access. Try signing out and back in.'
+      return 'Gmail denied access. Try signing out and back in.'
     }
     if (err.status === 429) {
-      return 'Microsoft is rate-limiting requests. Will retry on the next check.'
+      return 'Gmail is rate-limiting requests. Will retry on the next check.'
     }
     if (err.status >= 500) {
-      return 'Microsoft Mail is having trouble. Will retry on the next check.'
+      return 'Gmail is having trouble. Will retry on the next check.'
     }
-    return `Microsoft Mail error: ${err.message}`
+    return `Gmail error: ${err.message}`
   }
   if (err instanceof TypeError) {
     // fetch network failure
-    return 'No connection to Microsoft Mail. Will retry on the next check.'
+    return 'No connection to Gmail. Will retry on the next check.'
   }
   return `Sync failed: ${err instanceof Error ? err.message : String(err)}`
 }

@@ -15,16 +15,20 @@ Answer three questions quickly:
 - Where is the document I am looking for?
 - Which files/messages are consuming the most space, and what can I safely move or delete?
 
-## Planned Provider Scope
+## Provider Scope
 
-The current app shell is cloned from the Outlook version. The Gmail provider is
-not implemented yet.
+The app shell is cloned from the PostMail AI menu-bar foundation, and the first
+Google provider layer is now in place.
 
-The intended Google integrations are:
+Implemented Google integrations:
 
-- **Gmail API** for mail search, message metadata, labels, attachments, and message actions.
-- **Google Drive API** for Drive/Docs search, file metadata, size/quota fields, and moving files to trash.
 - **Google OAuth desktop flow** with local encrypted token storage.
+- **Gmail API** for unread mail, Gmail search, mark-read, archive, and trash actions.
+
+Planned Google integrations:
+
+- **Google Drive API** for Drive/Docs search, file metadata, size/quota fields, and moving files to trash.
+- **Gmail attachment metadata** for document-heavy message discovery.
 
 Important product note: Gmail search can find messages with attachments and
 Google-file links, but searching the actual contents/metadata of Drive files is
@@ -66,11 +70,10 @@ Expected APIs:
 - Gmail API
 - Google Drive API
 
-Expected scopes will be finalized during implementation. Start minimal:
+Current scopes:
 
-- Gmail read/search scope for message discovery.
-- Gmail modify scope only if the app performs labels/archive/delete.
-- Drive metadata/read scope for file search.
+- Gmail modify scope for message discovery, mark-read, archive, and trash.
+- Drive metadata/read scope reserved for upcoming file search.
 - Drive file write/trash scope only if cleanup actions are enabled.
 
 Gmail scopes are sensitive/restricted and may require Google OAuth verification
@@ -84,12 +87,12 @@ Completed:
 - Project cloned into a standalone repository.
 - macOS Electron/React menu-bar foundation retained.
 - Package identity changed to `Gmail Docs AI`.
+- Google OAuth sign-in foundation added.
+- Gmail unread sync, search, and basic message actions added.
 - Separate roadmap added in `docs/gmail-docs-ai-roadmap.md`.
 
 Not yet done:
 
-- Google OAuth.
-- Gmail provider.
 - Drive provider.
 - Attachment indexing.
 - Document/Drive search tab.
@@ -103,8 +106,8 @@ npm install
 npm run dev
 ```
 
-The cloned app still contains Microsoft/Outlook implementation code until the
-provider migration milestones replace it.
+Create `.env` from `.env.example`, then add your Google Cloud desktop OAuth
+client ID before running the app.
 
 ## Verification
 
@@ -113,4 +116,3 @@ npm run typecheck
 npm test
 npm run build
 ```
-

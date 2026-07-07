@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve Outlook Notifier.
+Thanks for helping improve Gmail Docs AI.
 
 ## Development
 
@@ -10,13 +10,13 @@ Thanks for helping improve Outlook Notifier.
    npm install
    ```
 
-2. Configure Microsoft authentication:
+2. Configure Google authentication:
 
    ```bash
    cp .env.example .env
    ```
 
-   Then replace `AZURE_CLIENT_ID` with your Azure app registration client ID.
+   Then replace `GOOGLE_CLIENT_ID` with your Google Cloud desktop OAuth client ID.
 
 3. Run the app:
 

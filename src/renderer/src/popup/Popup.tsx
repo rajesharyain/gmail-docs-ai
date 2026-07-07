@@ -843,7 +843,7 @@ export function Popup() {
     )
   }, [emails, trimmedQuery])
   // Explicit trigger only (Enter), not on every keystroke — this one hits
-  // Outlook, across all mail, not just the cached unread page.
+  // Gmail, across all mail, not just the cached unread page.
   const searchResults = useMemo(() => {
     if (!serverResults) return localMatches
     const seen = new Set(serverResults.map((e) => e.id))
@@ -1111,7 +1111,7 @@ export function Popup() {
           {searchResults.length === 0 && !searching ? (
             <div className="empty">
               <p className="empty-sub">
-                {serverResults ? 'No matches in Outlook.' : 'No local matches yet — press Enter to search Outlook.'}
+                {serverResults ? 'No matches in Gmail.' : 'No local matches yet — press Enter to search Gmail.'}
               </p>
             </div>
           ) : (
@@ -1158,15 +1158,15 @@ export function Popup() {
         {signedOut ? (
           <div className="empty">
             <span className="empty-icon empty-lock" aria-hidden />
-            <p>Connect your Microsoft mailbox</p>
+            <p>Connect your Gmail account</p>
             <p className="empty-sub">Sign-in opens in your browser. Your session is encrypted on this Mac.</p>
             <button
               className="signin-btn"
               onClick={() => window.notifier.signIn()}
               disabled={status === 'signing-in'}
-              aria-label="Sign in with Microsoft"
+              aria-label="Sign in with Google"
             >
-              {status === 'signing-in' ? 'Waiting for browser…' : 'Sign in with Microsoft'}
+              {status === 'signing-in' ? 'Waiting for browser…' : 'Sign in with Google'}
             </button>
           </div>
         ) : emails.length === 0 ? (

@@ -9,7 +9,7 @@ export interface EmailSummary {
   receivedAt: string // ISO 8601
   isRead: boolean
   isNew: boolean // arrived since last time the popup was opened
-  webLink?: string // Graph API webLink, used to open the Microsoft mailbox item
+  webLink?: string // Gmail web URL for opening the mailbox item
   /** Set by the opt-in cloud classification fallback when local rules were unsure. */
   cloudCategory?: MailCategory
   /**
@@ -34,7 +34,7 @@ export interface AccountSummary {
   email: string
 }
 
-/** The three direct Graph-writing actions available on an email. */
+/** The three direct mailbox-writing actions available on an email. */
 export type EmailActionKind = 'markRead' | 'archive' | 'delete'
 
 export type MailCategory =
@@ -197,14 +197,14 @@ export interface AIConnectionTestResult {
 }
 
 export interface Settings {
-  /** How often to check the Microsoft mailbox, in minutes. Clamped to 1–60. */
+  /** How often to check Gmail, in minutes. Clamped to 1-60. */
   pollIntervalMinutes: number
   /** Show a macOS notification when new mail arrives. */
   notificationsEnabled: boolean
   /**
    * Where clicking an email opens it:
-   * - 'web'     → exact message in Microsoft mail on the web (default)
-   * - 'desktop' → the Outlook app (inbox; falls back to web if not installed)
+   * - 'web'     -> exact message in Gmail on the web (default)
+   * - 'desktop' -> reserved for future provider-specific desktop behavior
    */
   openIn: 'web' | 'desktop'
   /** Start the app automatically when logging into macOS (packaged app only). */

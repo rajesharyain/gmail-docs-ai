@@ -7,7 +7,7 @@ export function createAppSqliteStore(): Promise<SqliteStore> {
     ? join(process.resourcesPath, 'sql-wasm.wasm')
     : join(app.getAppPath(), 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm')
 
-  return SqliteStore.open(join(app.getPath('userData'), 'postmail-ai.sqlite3'), wasmPath)
+  return SqliteStore.open(join(app.getPath('userData'), 'gmail-docs-ai.sqlite3'), wasmPath)
 }
 
 export type { AIAuditEntry, AIClassificationCacheEntry, AIPrivacyDecisionEntry, AIRule } from './sqliteStore'

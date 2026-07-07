@@ -26,7 +26,7 @@ import { readSettings, writeSettings } from './store'
 import { WindowManager } from './windows'
 
 // ---------------------------------------------------------------------------
-// Inbox state — driven by AuthManager + SyncEngine (real Graph data).
+// Inbox state — driven by AuthManager + SyncEngine.
 // ---------------------------------------------------------------------------
 const auth = new AuthManager()
 const inbox = new InboxStateStore()
@@ -102,7 +102,7 @@ async function handleSignIn() {
     setState({
       status: 'signed-out',
       errorMessage:
-        'No Azure client ID configured. Paste yours into src/main/authConfig.ts (see README).'
+        'No Google client ID configured. Set GOOGLE_CLIENT_ID before signing in (see README).'
     })
     return
   }
@@ -147,10 +147,10 @@ async function restoreSession() {
 }
 
 function friendlyAuthError(raw: string): string {
-  if (raw.includes('AADSTS65001') || raw.toLowerCase().includes('consent')) {
-    return 'Your organization requires admin approval for this app. Ask your IT admin to grant consent, or sign in with a personal Microsoft account.'
+  if (raw.toLowerCase().includes('access_denied')) {
+    return 'Google sign-in was denied.'
   }
-  if (raw.includes('user_cancelled') || raw.includes('access_denied')) {
+  if (raw.includes('user_cancelled')) {
     return 'Sign-in was cancelled.'
   }
   return `Sign-in failed: ${raw.slice(0, 160)}`

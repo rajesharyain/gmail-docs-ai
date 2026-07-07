@@ -1,8 +1,6 @@
-import { execFile } from 'child_process'
 import { shell } from 'electron'
 import type { EmailSummary, InboxState } from '../shared/types'
 import { isTrustedExternalEmailLink } from './ipcValidation'
-import { readSettings } from './store'
 
 interface EmailOpenerOptions {
   getState: () => InboxState
@@ -22,7 +20,7 @@ export class EmailOpener {
     if (!email) return
 
     // Optimistic removal: the user is reading it now, so it leaves the list
-    // immediately. The sync engine keeps it suppressed until Graph agrees.
+    // immediately. The sync engine keeps it suppressed until Gmail agrees.
     this.options.markOpened(id)
     this.options.recordLearning?.(email)
     const emails = state.emails.filter((e) => e.id !== id)
@@ -32,16 +30,6 @@ export class EmailOpener {
       newCount: emails.filter((e) => e.isNew).length
     })
 
-    const openWeb = () => {
-      if (isTrustedExternalEmailLink(email.webLink)) void shell.openExternal(email.webLink)
-    }
-
-    if (readSettings().openIn === 'desktop' && process.platform === 'darwin') {
-      execFile('open', ['-a', 'Microsoft Outlook'], (err) => {
-        if (err) openWeb()
-      })
-    } else {
-      openWeb()
-    }
+    if (isTrustedExternalEmailLink(email.webLink)) void shell.openExternal(email.webLink)
   }
 }

@@ -14,7 +14,7 @@ export class AIConnectionTester {
     const provider = settings.ai.provider
 
     if (!settings.ai.enabled || provider === 'none') {
-      return { ok: false, provider, checkedAt, message: 'Enable PostMail AI and choose a provider first.' }
+      return { ok: false, provider, checkedAt, message: 'Enable Gmail Docs AI and choose a provider first.' }
     }
 
     const token = this.credentials.readToken(provider)

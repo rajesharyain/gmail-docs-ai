@@ -270,15 +270,15 @@ export function SettingsPanel() {
       <label className="setting-row">
         <span className="setting-label">
           Open emails in
-          <span className="setting-hint">Web opens the exact message; the desktop app opens to your inbox</span>
+          <span className="setting-hint">Opens the exact message in Gmail</span>
         </span>
         <select
           className="setting-select"
           value={settings.openIn}
           onChange={(e) => update({ openIn: e.target.value as Settings['openIn'] })}
         >
-          <option value="web">Microsoft mail on the web</option>
-          <option value="desktop">Outlook app</option>
+          <option value="web">Gmail on the web</option>
+          <option value="desktop">Default browser</option>
         </select>
       </label>
 
@@ -398,13 +398,13 @@ export function SettingsPanel() {
       <section className="settings-section settings-section-stacked" aria-labelledby="ai-settings-title">
         <div className="settings-section-header">
           <span className="setting-label" id="ai-settings-title">
-            PostMail AI
+            Gmail Docs AI
             <span className="setting-hint">
               Opt-in cloud classification for the emails local rules can't confidently place.
             </span>
           </span>
           <label className="setting-switch">
-            <span className="sr-only">Enable PostMail AI</span>
+            <span className="sr-only">Enable Gmail Docs AI intelligence</span>
             <input
               type="checkbox"
               className="setting-toggle"
