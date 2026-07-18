@@ -44,14 +44,14 @@ const SECTION_ORDER: SectionCategory[] = [
 ]
 
 const SECTION_META: Record<SectionCategory, { label: string; icon: string; collapsed: boolean }> = {
-  important: { label: 'Important', icon: '⚡', collapsed: false },
-  finance: { label: 'Finance', icon: '💰', collapsed: false },
-  jobs: { label: 'Jobs', icon: '💼', collapsed: false },
-  calendar: { label: 'Calendar', icon: '📅', collapsed: false },
-  work: { label: 'Work', icon: '🛠️', collapsed: false },
-  home: { label: 'Home', icon: '🏠', collapsed: false },
-  promotions: { label: 'Promo', icon: '🏷️', collapsed: true },
-  noise: { label: 'Noise', icon: '🔕', collapsed: true }
+  important: { label: 'Important', icon: 'zap', collapsed: false },
+  finance: { label: 'Finance', icon: 'wallet', collapsed: false },
+  jobs: { label: 'Jobs', icon: 'briefcase', collapsed: false },
+  calendar: { label: 'Calendar', icon: 'calendar', collapsed: false },
+  work: { label: 'Work', icon: 'sparkles', collapsed: false },
+  home: { label: 'Home', icon: 'home', collapsed: false },
+  promotions: { label: 'Promo', icon: 'tag', collapsed: true },
+  noise: { label: 'Noise', icon: 'bell-off', collapsed: true }
 }
 
 function itemCount(items: ListItem[]): number {
@@ -157,7 +157,7 @@ export function buildAttentionSections(
     attentionSections.push({
       kind: 'due-soon',
       label: 'Due soon',
-      icon: '⏱',
+      icon: 'clock',
       items: dueItems,
       emailCount: itemCount(dueItems),
       newCount: newCount(dueItems),
@@ -170,7 +170,7 @@ export function buildAttentionSections(
     attentionSections.push({
       kind: 'needs-attention',
       label: 'Needs attention',
-      icon: '!',
+      icon: 'alert-circle',
       items: attentionItems,
       emailCount: itemCount(attentionItems),
       newCount: newCount(attentionItems),

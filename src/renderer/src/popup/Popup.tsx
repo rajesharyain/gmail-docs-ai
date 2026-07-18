@@ -5,6 +5,7 @@ import type {
   EmailActionKind,
   EmailSummary,
   InboxState,
+  InboxStats,
   MailCategory,
   RuleAction,
   RuleSuggestion,
@@ -13,6 +14,31 @@ import type {
 } from '../../../shared/types'
 import { CategoryDrawer } from './CategoryDrawer'
 import { groupEmails, type EmailGroup, type ListItem } from './grouping'
+import {
+  ArchiveIcon,
+  CheckCheckIcon,
+  CheckIcon,
+  ChevronRightIcon,
+  FilmIcon,
+  ImageIcon,
+  InboxIcon,
+  LogOutIcon,
+  MailIcon,
+  MailOpenIcon,
+  MenuIcon,
+  MoreHorizontalIcon,
+  PowerIcon,
+  RefreshCwIcon,
+  SearchIcon,
+  SettingsIcon,
+  SectionIcon,
+  SquareCheckIcon,
+  SquareMinusIcon,
+  StarIcon,
+  Trash2Icon,
+  VolumeXIcon,
+  XIcon
+} from './Icons'
 import { buildAttentionSections, buildSections, sectionPeek, type AttentionSection, type InboxSection } from './sections'
 import { SettingsPanel } from './SettingsPanel'
 
@@ -20,6 +46,7 @@ type EmailActionHandler = (email: EmailSummary, action: EmailActionKind) => void
 type RuleActionHandler = (email: EmailSummary, action: RuleAction) => void
 /** Row clicks select in select mode; Cmd/Ctrl-click always selects and turns select mode on (Finder convention). */
 type SelectHandler = (id: string, opts: { viaModifier: boolean }) => void
+type PreviewRequest = { email: EmailSummary; anchorY: number }
 
 function timeLabel(iso: string): string {
   const d = new Date(iso)
@@ -65,10 +92,12 @@ function primaryInsightLabel(insight: ReturnType<typeof classifyEmail>): { label
 
 function RowMenu({
   email,
+  isHighPriority,
   onRuleAction,
   onEmailAction
 }: {
   email: EmailSummary
+  isHighPriority: boolean
   onRuleAction: RuleActionHandler
   onEmailAction: EmailActionHandler
 }) {
@@ -97,10 +126,23 @@ function RowMenu({
         aria-label={`More actions for ${email.sender}`}
         title="More actions"
       >
-        ⋯
+        <MoreHorizontalIcon size={14} />
       </button>
       {open && (
         <div className="row-menu-list" role="menu">
+          {isHighPriority && (
+            <button
+              type="button"
+              role="menuitem"
+              className="row-menu-item row-menu-item-done"
+              onClick={() => {
+                onEmailAction(email, 'done')
+                setOpen(false)
+              }}
+            >
+              <CheckCheckIcon size={13} /> Done
+            </button>
+          )}
           <button
             type="button"
             role="menuitem"
@@ -110,7 +152,7 @@ function RowMenu({
               setOpen(false)
             }}
           >
-            📧 Open
+            <MailOpenIcon size={13} /> Open
           </button>
           {!email.isRead && (
             <button
@@ -122,7 +164,7 @@ function RowMenu({
                 setOpen(false)
               }}
             >
-              ✓ Mark as read
+              <CheckIcon size={13} /> Mark as read
             </button>
           )}
           <button
@@ -134,7 +176,7 @@ function RowMenu({
               setOpen(false)
             }}
           >
-            🗄 Archive
+            <ArchiveIcon size={13} /> Archive
           </button>
           <button
             type="button"
@@ -145,7 +187,7 @@ function RowMenu({
               setOpen(false)
             }}
           >
-            🗑 Delete
+            <Trash2Icon size={13} /> Delete
           </button>
           <button
             type="button"
@@ -156,7 +198,7 @@ function RowMenu({
               setOpen(false)
             }}
           >
-            ⭐ Mark sender important
+            <StarIcon size={13} /> Mark sender important
           </button>
           <button
             type="button"
@@ -167,7 +209,7 @@ function RowMenu({
               setOpen(false)
             }}
           >
-            🔇 Mute sender
+            <VolumeXIcon size={13} /> Mute sender
           </button>
         </div>
       )}
@@ -184,7 +226,8 @@ function EmailRow({
   onEmailAction,
   selectMode,
   selected,
-  onSelectRow
+  onSelectRow,
+  onPreview
 }: {
   email: EmailSummary
   indented?: boolean
@@ -195,10 +238,12 @@ function EmailRow({
   selectMode: boolean
   selected: boolean
   onSelectRow: SelectHandler
+  onPreview: (request: PreviewRequest) => void
 }) {
   const insight = classifyEmail(email, senderRules)
   const unread = !email.isRead
   const signal = primaryInsightLabel(insight)
+  const isHighPriority = insight.attentionLevel === 'urgent' || insight.attentionLevel === 'important' || insight.deadline.hasDeadline
 
   const handleRowClick = (e: React.MouseEvent) => {
     if (e.metaKey || e.ctrlKey) {
@@ -206,13 +251,18 @@ function EmailRow({
       return
     }
     if (selectMode) onSelectRow(email.id, { viaModifier: false })
+    else onPreview({ email, anchorY: e.clientY })
   }
 
   const handleRowKeyDown = (e: React.KeyboardEvent) => {
-    if (!selectMode) return
-    if (e.key === 'Enter' || e.key === ' ') {
+    if (selectMode && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault()
       onSelectRow(email.id, { viaModifier: false })
+      return
+    }
+    if (!selectMode && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault()
+      onPreview({ email, anchorY: window.innerHeight / 2 })
     }
   }
 
@@ -227,9 +277,9 @@ function EmailRow({
         className="email-row"
         onClick={handleRowClick}
         onKeyDown={handleRowKeyDown}
-        role={selectMode ? 'checkbox' : undefined}
+        role={selectMode ? 'checkbox' : 'button'}
         aria-checked={selectMode ? selected : undefined}
-        tabIndex={selectMode ? 0 : undefined}
+        tabIndex={0}
         aria-label={`${email.sender}, ${email.subject}, ${insight.label}, ${timeLabel(email.receivedAt)}${
           email.isNew ? ', new' : ''
         }`}
@@ -268,7 +318,7 @@ function EmailRow({
           <time className="email-time" dateTime={email.receivedAt}>
             {timeLabel(email.receivedAt)}
           </time>
-          <RowMenu email={email} onRuleAction={onRuleAction} onEmailAction={onEmailAction} />
+          <RowMenu email={email} isHighPriority={isHighPriority} onRuleAction={onRuleAction} onEmailAction={onEmailAction} />
         </span>
       </div>
     </article>
@@ -283,7 +333,8 @@ function GroupRow({
   onEmailAction,
   selectMode,
   selectedIds,
-  onSelectRow
+  onSelectRow,
+  onPreview
 }: {
   group: EmailGroup
   showInsights: boolean
@@ -293,6 +344,7 @@ function GroupRow({
   selectMode: boolean
   selectedIds: Set<string>
   onSelectRow: SelectHandler
+  onPreview: (request: PreviewRequest) => void
 }) {
   const [open, setOpen] = useState(false)
   const bodyId = `group-${group.key.replace(/[^a-z0-9_-]/gi, '-')}`
@@ -308,7 +360,7 @@ function GroupRow({
         }`}
       >
         <span className={`chevron ${open ? 'chevron-open' : ''}`} aria-hidden>
-          ›
+          <ChevronRightIcon size={14} />
         </span>
         <span className="group-label">
           {group.newCount > 0 && <span className="new-dot" aria-hidden />}
@@ -331,6 +383,7 @@ function GroupRow({
               selectMode={selectMode}
               selected={selectedIds.has(e.id)}
               onSelectRow={onSelectRow}
+              onPreview={onPreview}
             />
           ))}
         </div>
@@ -359,7 +412,8 @@ function ListItemRow({
   onEmailAction,
   selectMode,
   selectedIds,
-  onSelectRow
+  onSelectRow,
+  onPreview
 }: {
   item: ListItem
   showInsights: boolean
@@ -369,6 +423,7 @@ function ListItemRow({
   selectMode: boolean
   selectedIds: Set<string>
   onSelectRow: SelectHandler
+  onPreview: (request: PreviewRequest) => void
 }) {
   return item.kind === 'group' ? (
     <GroupRow
@@ -380,6 +435,7 @@ function ListItemRow({
       selectMode={selectMode}
       selectedIds={selectedIds}
       onSelectRow={onSelectRow}
+      onPreview={onPreview}
     />
   ) : (
     <EmailRow
@@ -391,6 +447,7 @@ function ListItemRow({
       selectMode={selectMode}
       selected={selectedIds.has(item.email.id)}
       onSelectRow={onSelectRow}
+      onPreview={onPreview}
     />
   )
 }
@@ -401,46 +458,83 @@ function SectionBlock({
   senderRules,
   onRuleAction,
   onEmailAction,
+  onSectionAction,
   selectMode,
   selectedIds,
-  onSelectRow
+  onSelectRow,
+  onPreview
 }: {
   section: InboxSection
   showInsights: boolean
   senderRules: SenderRule[]
   onRuleAction: RuleActionHandler
   onEmailAction: EmailActionHandler
+  onSectionAction: (ids: string[], action: EmailActionKind) => void
   selectMode: boolean
   selectedIds: Set<string>
   onSelectRow: SelectHandler
+  onPreview: (request: PreviewRequest) => void
 }) {
   const [open, setOpen] = useState(!section.defaultCollapsed)
   const bodyId = `section-${section.category}`
   const peek = sectionPeek(section.items)
+  const sectionEmailIds = useMemo(() => {
+    const ids: string[] = []
+    for (const item of section.items) {
+      if (item.kind === 'group') ids.push(...item.emails.map((e) => e.id))
+      else ids.push(item.email.id)
+    }
+    return ids
+  }, [section.items])
+
+  const isLowPriority = section.category === 'promotions' || section.category === 'noise'
 
   return (
     <div className={`inbox-section inbox-section-${section.category}`}>
-      <button
-        className="section-header"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        aria-controls={bodyId}
-        aria-label={`${open ? 'Collapse' : 'Expand'} ${section.label}, ${section.emailCount} emails${
-          section.newCount > 0 ? `, ${section.newCount} new` : ''
-        }`}
-      >
-        <span className={`chevron ${open ? 'chevron-open' : ''}`} aria-hidden>
-          ›
-        </span>
-        <span className="section-icon" aria-hidden>
-          {section.icon}
-        </span>
-        <span className="section-label">
-          {section.newCount > 0 && <span className="new-dot" aria-hidden />}
-          {section.label}
-        </span>
-        <span className="section-count">{section.emailCount}</span>
-      </button>
+      <div className="section-header-row">
+        <button
+          className="section-header"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          aria-controls={bodyId}
+          aria-label={`${open ? 'Collapse' : 'Expand'} ${section.label}, ${section.emailCount} emails${
+            section.newCount > 0 ? `, ${section.newCount} new` : ''
+          }`}
+        >
+          <span className={`chevron ${open ? 'chevron-open' : ''}`} aria-hidden>
+            ›
+          </span>
+          <SectionIcon icon={section.icon} size={13} className="section-icon" />
+          <span className="section-label">
+            {section.newCount > 0 && <span className="new-dot" aria-hidden />}
+            {section.label}
+          </span>
+          <span className="section-count">{section.emailCount}</span>
+        </button>
+        {sectionEmailIds.length > 0 && (
+          <span className="section-actions" onClick={(e) => e.stopPropagation()}>
+            {isLowPriority ? (
+              <button
+                type="button"
+                className="section-action-btn"
+                title={`Mark all ${section.label} as read`}
+                onClick={() => onSectionAction(sectionEmailIds, 'markRead')}
+              >
+                <CheckIcon size={11} /> All read
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="section-action-btn section-action-done"
+                title={`Done with all ${section.label}`}
+                onClick={() => onSectionAction(sectionEmailIds, 'done')}
+              >
+                <CheckCheckIcon size={11} /> All done
+              </button>
+            )}
+          </span>
+        )}
+      </div>
       {open ? (
         <div className="section-body" id={bodyId}>
           {section.items.map((item) => (
@@ -454,6 +548,7 @@ function SectionBlock({
               selectMode={selectMode}
               selectedIds={selectedIds}
               onSelectRow={onSelectRow}
+              onPreview={onPreview}
             />
           ))}
         </div>
@@ -479,46 +574,70 @@ function AttentionSectionBlock({
   senderRules,
   onRuleAction,
   onEmailAction,
+  onSectionAction,
   selectMode,
   selectedIds,
-  onSelectRow
+  onSelectRow,
+  onPreview
 }: {
   section: AttentionSection
   showInsights: boolean
   senderRules: SenderRule[]
   onRuleAction: RuleActionHandler
   onEmailAction: EmailActionHandler
+  onSectionAction: (ids: string[], action: EmailActionKind) => void
   selectMode: boolean
   selectedIds: Set<string>
   onSelectRow: SelectHandler
+  onPreview: (request: PreviewRequest) => void
 }) {
   const [open, setOpen] = useState(!section.defaultCollapsed)
   const bodyId = `attention-section-${section.kind}`
   const peek = sectionPeek(section.items)
+  const sectionEmailIds = useMemo(() => {
+    const ids: string[] = []
+    for (const item of section.items) {
+      if (item.kind === 'group') ids.push(...item.emails.map((e) => e.id))
+      else ids.push(item.email.id)
+    }
+    return ids
+  }, [section.items])
 
   return (
     <div className={`attention-section attention-section-${section.kind}`}>
-      <button
-        className="section-header attention-section-header"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        aria-controls={bodyId}
-        aria-label={`${open ? 'Collapse' : 'Expand'} ${section.label}, ${section.emailCount} emails${
-          section.newCount > 0 ? `, ${section.newCount} new` : ''
-        }`}
-      >
-        <span className={`chevron ${open ? 'chevron-open' : ''}`} aria-hidden>
-          ›
-        </span>
-        <span className="section-icon" aria-hidden>
-          {section.icon}
-        </span>
-        <span className="section-label">
-          {section.newCount > 0 && <span className="new-dot" aria-hidden />}
-          {section.label}
-        </span>
-        <span className="section-count">{section.emailCount}</span>
-      </button>
+      <div className="section-header-row">
+        <button
+          className="section-header attention-section-header"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          aria-controls={bodyId}
+          aria-label={`${open ? 'Collapse' : 'Expand'} ${section.label}, ${section.emailCount} emails${
+            section.newCount > 0 ? `, ${section.newCount} new` : ''
+          }`}
+        >
+          <span className={`chevron ${open ? 'chevron-open' : ''}`} aria-hidden>
+            ›
+          </span>
+          <SectionIcon icon={section.icon} size={13} className="section-icon" />
+          <span className="section-label">
+            {section.newCount > 0 && <span className="new-dot" aria-hidden />}
+            {section.label}
+          </span>
+          <span className="section-count">{section.emailCount}</span>
+        </button>
+        {sectionEmailIds.length > 0 && (
+          <span className="section-actions" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="section-action-btn section-action-done"
+              title={`Done with all ${section.label}`}
+              onClick={() => onSectionAction(sectionEmailIds, 'done')}
+            >
+              ✔ All done
+            </button>
+          </span>
+        )}
+      </div>
       {open ? (
         <div className="section-body" id={bodyId}>
           {section.items.map((item) => (
@@ -532,6 +651,7 @@ function AttentionSectionBlock({
               selectMode={selectMode}
               selectedIds={selectedIds}
               onSelectRow={onSelectRow}
+              onPreview={onPreview}
             />
           ))}
         </div>
@@ -547,6 +667,180 @@ function AttentionSectionBlock({
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+function EmailPreviewPopover({
+  email,
+  anchorY,
+  senderRules,
+  fullMessagePreview,
+  onClose,
+  onOpenExternal,
+  onEmailAction,
+  onRuleAction
+}: {
+  email: EmailSummary
+  anchorY: number
+  senderRules: SenderRule[]
+  fullMessagePreview: boolean
+  onClose: () => void
+  onOpenExternal: () => void
+  onEmailAction: EmailActionHandler
+  onRuleAction: RuleActionHandler
+}) {
+  const insight = classifyEmail(email, senderRules)
+  const signal = primaryInsightLabel(insight)
+  const top = Math.max(76, Math.min(anchorY - 18, window.innerHeight - 292))
+  const [fullBody, setFullBody] = useState<string | null>(null)
+  const [loadingBody, setLoadingBody] = useState(false)
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  useEffect(() => {
+    if (!fullMessagePreview) return
+    setLoadingBody(true)
+    window.notifier.fetchEmailBody(email.id).then((body) => {
+      setFullBody(body || null)
+      setLoadingBody(false)
+    }).catch(() => setLoadingBody(false))
+  }, [email.id, fullMessagePreview])
+
+  const isHighPriority = insight.attentionLevel === 'urgent' || insight.attentionLevel === 'important' || insight.deadline.hasDeadline
+
+  return (
+    <div className="message-preview-layer" onMouseDown={onClose}>
+      <aside
+        className="message-preview"
+        style={{ top }}
+        aria-label={`Preview: ${email.subject}`}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <header className="message-preview-header">
+          <span
+            className="message-preview-avatar"
+            aria-hidden
+            style={{ background: `hsl(${avatarHue(email.senderAddress)} 42% 46%)` }}
+          >
+            {initials(email.sender)}
+          </span>
+          <span className="message-preview-title">
+            <span className="message-preview-sender">{email.sender}</span>
+            <span className="message-preview-address">{email.senderAddress || 'Unknown address'}</span>
+          </span>
+          <button type="button" className="icon-btn preview-close" onClick={onClose} aria-label="Close preview">
+            <XIcon size={14} />
+          </button>
+        </header>
+
+        <div className="message-preview-body">
+          <div className="message-preview-meta">
+            <time dateTime={email.receivedAt}>{timeLabel(email.receivedAt)}</time>
+            <span className={`cat-chip cat-chip-${insight.category}`}>{insight.label}</span>
+            {signal && <span className={`insight-chip insight-chip-${signal.tone}`}>{signal.label}</span>}
+          </div>
+          <h2 className="message-preview-subject">{email.subject}</h2>
+          {fullMessagePreview && loadingBody && (
+            <p className="message-preview-text message-preview-loading">Loading full message...</p>
+          )}
+          {fullMessagePreview && fullBody ? (
+            <div className="message-preview-full">{fullBody}</div>
+          ) : (
+            <p className="message-preview-text">{email.preview || 'No preview available.'}</p>
+          )}
+          {insight.reasons.length > 0 && (
+            <ul className="message-preview-reasons">
+              {insight.reasons.slice(0, 2).map((reason) => (
+                <li key={reason}>{reason}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <footer className="message-preview-actions">
+          {isHighPriority ? (
+            <button
+              type="button"
+              className="small-action-btn done-action-btn"
+              onClick={() => onEmailAction(email, 'done')}
+            >
+              Done
+            </button>
+          ) : (
+            <button type="button" className="small-action-btn" onClick={() => onEmailAction(email, 'archive')}>
+              Archive
+            </button>
+          )}
+          <button type="button" className="small-action-btn primary-action-btn" onClick={onOpenExternal}>
+            Open in Gmail
+          </button>
+          {!email.isRead && (
+            <button type="button" className="small-action-btn" onClick={() => onEmailAction(email, 'markRead')}>
+              Mark read
+            </button>
+          )}
+          <button
+            type="button"
+            className="small-action-btn"
+            onClick={() => {
+              onRuleAction(email, 'important')
+              onClose()
+            }}
+          >
+            Important
+          </button>
+        </footer>
+      </aside>
+    </div>
+  )
+}
+
+function formatSize(bytes: number): string {
+  if (bytes === 0) return '0 B'
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
+}
+
+function StatsCards({ stats }: { stats: InboxStats }) {
+  return (
+    <div className="stats-cards">
+      <div className="stat-card">
+        <span className="stat-icon"><InboxIcon size={15} /></span>
+        <span className="stat-info">
+          <span className="stat-value">{stats.totalEmails.toLocaleString()}</span>
+          <span className="stat-label">Total</span>
+        </span>
+      </div>
+      <div className="stat-card">
+        <span className="stat-icon"><Trash2Icon size={15} /></span>
+        <span className="stat-info">
+          <span className="stat-value">{stats.trashEmails.toLocaleString()}</span>
+          <span className="stat-label">Trash</span>
+        </span>
+      </div>
+      <div className="stat-card">
+        <span className="stat-icon"><ImageIcon size={15} /></span>
+        <span className="stat-info">
+          <span className="stat-value">{stats.imageAttachments.toLocaleString()}</span>
+          <span className="stat-label">{formatSize(stats.imageSize)}</span>
+        </span>
+      </div>
+      <div className="stat-card">
+        <span className="stat-icon"><FilmIcon size={15} /></span>
+        <span className="stat-info">
+          <span className="stat-value">{stats.videoAttachments.toLocaleString()}</span>
+          <span className="stat-label">{formatSize(stats.videoSize)}</span>
+        </span>
+      </div>
     </div>
   )
 }
@@ -573,7 +867,7 @@ function InlineSearchBar({
   return (
     <div className="search-bar">
       <span className="search-icon" aria-hidden>
-        🔍
+        <SearchIcon size={14} />
       </span>
       <input
         ref={ref}
@@ -596,7 +890,7 @@ function InlineSearchBar({
         aria-label="Close search"
         title="Close search"
       >
-        ✕
+        <XIcon size={14} />
       </button>
     </div>
   )
@@ -641,7 +935,7 @@ function HeaderMenu({
         aria-label="More"
         title="More"
       >
-        ⋯
+        <MoreHorizontalIcon size={15} />
       </button>
       {open && (
         <div className="row-menu-list header-menu-list" role="menu">
@@ -655,7 +949,7 @@ function HeaderMenu({
                 setOpen(false)
               }}
             >
-              🧹 Mark all read
+              <CheckCheckIcon size={13} /> Mark all read
             </button>
           )}
           <button
@@ -667,7 +961,7 @@ function HeaderMenu({
               setOpen(false)
             }}
           >
-            ⚙ Settings
+            <SettingsIcon size={13} /> Settings
           </button>
           {signedIn && (
             <button
@@ -679,7 +973,7 @@ function HeaderMenu({
                 setOpen(false)
               }}
             >
-              ↪ Sign out
+              <LogOutIcon size={13} /> Sign out
             </button>
           )}
           <button
@@ -691,7 +985,7 @@ function HeaderMenu({
               setOpen(false)
             }}
           >
-            ⏻ Quit
+            <PowerIcon size={13} /> Quit
           </button>
         </div>
       )}
@@ -712,11 +1006,27 @@ export function Popup() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<MailCategory | null>(null)
   const [suggestion, setSuggestion] = useState<RuleSuggestion | null>(null)
+  const [preview, setPreview] = useState<PreviewRequest | null>(null)
+  const [inboxStats, setInboxStats] = useState<InboxStats | null>(null)
+  const [statsLoading, setStatsLoading] = useState(false)
+  const statsLoaded = useRef(false)
 
   useEffect(() => {
     window.notifier.getInboxState().then(setState)
     return window.notifier.onInboxState(setState)
   }, [])
+
+  useEffect(() => {
+    if (statsLoaded.current) return
+    if (state?.status === 'ok') {
+      statsLoaded.current = true
+      setStatsLoading(true)
+      window.notifier.fetchInboxStats()
+        .then(setInboxStats)
+        .catch(() => {})
+        .finally(() => setStatsLoading(false))
+    }
+  }, [state?.status])
 
   // Selections are scoped to whatever list is currently on screen — switching
   // between Inbox/Settings clears them and drops out of select mode rather
@@ -725,6 +1035,7 @@ export function Popup() {
     setSelectMode(false)
     setSelectedIds(new Set())
     setDrawerOpen(false)
+    setPreview(null)
   }, [view])
 
   // While staying in the inbox view, drop selections for emails that
@@ -737,7 +1048,8 @@ export function Popup() {
       const next = new Set([...prev].filter((id) => currentIds.has(id)))
       return next.size === prev.size ? prev : next
     })
-  }, [state, view])
+    if (preview && !currentIds.has(preview.email.id)) setPreview(null)
+  }, [state, view, preview])
 
   useEffect(() => {
     window.notifier.getSettings().then(setSettings)
@@ -761,6 +1073,7 @@ export function Popup() {
     setSearchOpen(false)
     setSearchQuery('')
     setServerResults(null)
+    setPreview(null)
   }
 
   const exitSelectMode = () => {
@@ -775,6 +1088,10 @@ export function Popup() {
         setDrawerOpen(false)
         return
       }
+      if (preview) {
+        setPreview(null)
+        return
+      }
       if (searchOpen) {
         closeSearch()
         return
@@ -787,7 +1104,7 @@ export function Popup() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [drawerOpen, searchOpen, selectMode])
+  }, [drawerOpen, preview, searchOpen, selectMode])
 
   const emails = state?.emails ?? []
   const unread = state?.unreadCount ?? 0
@@ -915,11 +1232,14 @@ export function Popup() {
     if (!confirmMailboxAction(action, 1, email)) return
     if (action === 'markRead') window.notifier.markEmailRead(email.id)
     else if (action === 'archive') window.notifier.archiveEmail(email.id)
+    else if (action === 'done') window.notifier.doneEmail(email.id)
     else window.notifier.deleteEmail(email.id)
+    setPreview(null)
   }
 
   const onSelectRow: SelectHandler = (id, { viaModifier }) => {
     if (viaModifier && !selectMode) setSelectMode(true)
+    setPreview(null)
     setSelectedIds((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
@@ -930,10 +1250,18 @@ export function Popup() {
 
   const clearSelection = () => setSelectedIds(new Set())
 
-  // What "Select all" applies to depends on what's on screen right now —
-  // inbox selects everything currently visible after category filters,
-  // search selects whatever the search pass is currently rendering.
-  const selectableIds = isSearching ? searchResults.map((e) => e.id) : visibleEmails.map((e) => e.id)
+  const showPreview = (request: PreviewRequest) => {
+    if (drawerOpen) setDrawerOpen(false)
+    setPreview(request)
+  }
+
+  // What "Select all" applies to depends on what's on screen right now:
+  // search > category filter > full visible inbox.
+  const selectableIds = isSearching
+    ? searchResults.map((e) => e.id)
+    : categoryFilter
+      ? categoryFilteredEmails.map((e) => e.id)
+      : visibleEmails.map((e) => e.id)
   const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
   const toggleSelectAll = () => {
     setSelectedIds(allSelected ? new Set() : new Set(selectableIds))
@@ -944,6 +1272,12 @@ export function Popup() {
     if (!confirmMailboxAction(action, selectedIds.size)) return
     window.notifier.bulkEmailAction([...selectedIds], action)
     clearSelection()
+  }
+
+  const handleSectionAction = (ids: string[], action: EmailActionKind) => {
+    if (ids.length === 0) return
+    if (!confirmMailboxAction(action, ids.length)) return
+    window.notifier.bulkEmailAction(ids, action)
   }
 
   const accountLabel = state?.account?.email ?? null
@@ -961,7 +1295,7 @@ export function Popup() {
               aria-label={drawerOpen ? 'Close categories' : 'Categories'}
               aria-pressed={drawerOpen}
             >
-              ☰
+              <MenuIcon size={15} />
             </button>
           )}
           <span className="title-stack">
@@ -987,7 +1321,7 @@ export function Popup() {
                 aria-label={searchOpen ? 'Close search' : 'Search mail'}
                 aria-pressed={searchOpen}
               >
-                🔍
+                <SearchIcon size={15} />
               </button>
             )}
             {!signedOut && (
@@ -998,7 +1332,7 @@ export function Popup() {
                 aria-label={selectMode ? 'Cancel selection' : 'Select emails'}
                 aria-pressed={selectMode}
               >
-                {selectMode ? '☒' : '☑'}
+                {selectMode ? <SquareMinusIcon size={15} /> : <SquareCheckIcon size={15} />}
               </button>
             )}
             {!signedOut && (
@@ -1009,7 +1343,7 @@ export function Popup() {
                 disabled={status === 'syncing'}
                 aria-label="Check now"
               >
-                ↻
+                <RefreshCwIcon size={15} />
               </button>
             )}
             {!signedOut && (
@@ -1030,7 +1364,7 @@ export function Popup() {
             onClick={() => setView('inbox')}
             aria-label="Back to inbox"
           >
-            ✕
+            <XIcon size={15} />
           </button>
         )}
       </header>
@@ -1044,6 +1378,14 @@ export function Popup() {
           <p className="inbox-briefing-headline">{briefing.headline}</p>
           {briefing.detail && <p className="inbox-briefing-detail">{briefing.detail}</p>}
         </div>
+      )}
+
+      {view === 'inbox' && !isSearching && !categoryFilter && !signedOut && (inboxStats || statsLoading) && (
+        inboxStats ? <StatsCards stats={inboxStats} /> : (
+          <div className="stats-cards stats-cards-loading">
+            <div className="stat-card"><span className="stat-label">Loading stats...</span></div>
+          </div>
+        )
       )}
 
       {view === 'inbox' && !isSearching && !categoryFilter && !signedOut && suggestion && (
@@ -1067,7 +1409,7 @@ export function Popup() {
               aria-label="Dismiss suggestion"
               title="Dismiss"
             >
-              ✕
+              <XIcon size={12} />
             </button>
           </span>
         </div>
@@ -1088,7 +1430,7 @@ export function Popup() {
 
       {view === 'inbox' && categoryFilter && !isSearching && (
         <div className="category-filter-pill">
-          <span aria-hidden>{allSections.find((s) => s.category === categoryFilter)?.icon ?? '📁'}</span>
+          <SectionIcon icon={allSections.find((s) => s.category === categoryFilter)?.icon ?? 'inbox'} size={13} />
           <span>{allSections.find((s) => s.category === categoryFilter)?.label ?? categoryFilter}</span>
           <button
             type="button"
@@ -1097,7 +1439,7 @@ export function Popup() {
             aria-label="Clear category filter"
             title="Clear filter"
           >
-            ✕
+            <XIcon size={10} />
           </button>
         </div>
       )}
@@ -1126,6 +1468,7 @@ export function Popup() {
                 selectMode={selectMode}
                 selected={selectedIds.has(email.id)}
                 onSelectRow={onSelectRow}
+                onPreview={showPreview}
               />
             ))
           )}
@@ -1149,6 +1492,7 @@ export function Popup() {
                 selectMode={selectMode}
                 selected={selectedIds.has(email.id)}
                 onSelectRow={onSelectRow}
+                onPreview={showPreview}
               />
             ))
           )}
@@ -1193,9 +1537,11 @@ export function Popup() {
                 senderRules={senderRules}
                 onRuleAction={addSenderRule}
                 onEmailAction={handleEmailAction}
+                onSectionAction={handleSectionAction}
                 selectMode={selectMode}
                 selectedIds={selectedIds}
                 onSelectRow={onSelectRow}
+                onPreview={showPreview}
               />
             ))}
             {sectionsAboveInbox.map((section) => (
@@ -1206,9 +1552,11 @@ export function Popup() {
                 senderRules={senderRules}
                 onRuleAction={addSenderRule}
                 onEmailAction={handleEmailAction}
+                onSectionAction={handleSectionAction}
                 selectMode={selectMode}
                 selectedIds={selectedIds}
                 onSelectRow={onSelectRow}
+                onPreview={showPreview}
               />
             ))}
             {otherItems.map((item) => (
@@ -1222,6 +1570,7 @@ export function Popup() {
                 selectMode={selectMode}
                 selectedIds={selectedIds}
                 onSelectRow={onSelectRow}
+                onPreview={showPreview}
               />
             ))}
             {sectionsBelowInbox.map((section) => (
@@ -1232,9 +1581,11 @@ export function Popup() {
                 senderRules={senderRules}
                 onRuleAction={addSenderRule}
                 onEmailAction={handleEmailAction}
+                onSectionAction={handleSectionAction}
                 selectMode={selectMode}
                 selectedIds={selectedIds}
                 onSelectRow={onSelectRow}
+                onPreview={showPreview}
               />
             ))}
           </>
@@ -1251,6 +1602,7 @@ export function Popup() {
                 selectMode={selectMode}
                 selectedIds={selectedIds}
                 onSelectRow={onSelectRow}
+                onPreview={showPreview}
               />
             ))}
           </>
@@ -1272,12 +1624,21 @@ export function Popup() {
           <span className="floating-toolbar-actions">
             <button
               className="icon-btn"
+              title="Done (mark read + archive)"
+              aria-label={`Mark ${selectedIds.size} selected as done`}
+              disabled={selectedIds.size === 0}
+              onClick={() => handleBulkAction('done')}
+            >
+              <CheckCheckIcon size={15} />
+            </button>
+            <button
+              className="icon-btn"
               title="Mark read"
               aria-label={`Mark ${selectedIds.size} selected read`}
               disabled={selectedIds.size === 0}
               onClick={() => handleBulkAction('markRead')}
             >
-              ✓
+              <CheckIcon size={15} />
             </button>
             <button
               className="icon-btn"
@@ -1286,7 +1647,7 @@ export function Popup() {
               disabled={selectedIds.size === 0}
               onClick={() => handleBulkAction('archive')}
             >
-              🗄
+              <ArchiveIcon size={15} />
             </button>
             <button
               className="icon-btn"
@@ -1295,7 +1656,7 @@ export function Popup() {
               disabled={selectedIds.size === 0}
               onClick={() => handleBulkAction('delete')}
             >
-              🗑
+              <Trash2Icon size={15} />
             </button>
             <button
               className="icon-btn"
@@ -1303,10 +1664,25 @@ export function Popup() {
               aria-label="Cancel selection"
               onClick={exitSelectMode}
             >
-              ✕
+              <XIcon size={15} />
             </button>
           </span>
         </div>
+      )}
+      {preview && view === 'inbox' && !selectMode && (
+        <EmailPreviewPopover
+          email={preview.email}
+          anchorY={preview.anchorY}
+          senderRules={senderRules}
+          fullMessagePreview={settings?.rules.fullMessagePreview ?? true}
+          onClose={() => setPreview(null)}
+          onOpenExternal={() => {
+            window.notifier.openEmail(preview.email.id)
+            setPreview(null)
+          }}
+          onEmailAction={handleEmailAction}
+          onRuleAction={addSenderRule}
+        />
       )}
       </div>
 

@@ -12,6 +12,7 @@ import type {
   SenderRule,
   Settings
 } from '../../../shared/types'
+import { MoreHorizontalIcon, StarIcon, VolumeXIcon } from './Icons'
 
 const INTERVALS = [1, 2, 5, 10, 15, 30, 60]
 
@@ -339,14 +340,14 @@ export function SettingsPanel() {
           <span className="setting-field-label">Sender rules</span>
           {settings.rules.senderRules.length === 0 ? (
             <p className="setting-hint rule-empty-hint">
-              No rules yet — use ⋯ on any email to mark a sender important or mute them.
+              No rules yet — use <MoreHorizontalIcon size={11} /> on any email to mark a sender important or mute them.
             </p>
           ) : (
             <ul className="sender-rule-list">
               {settings.rules.senderRules.map((rule) => (
                 <li key={rule.id} className="sender-rule-item">
                   <span className={`rule-badge rule-badge-${rule.action}`}>
-                    {rule.action === 'important' ? '⭐ Important' : '🔇 Muted'}
+                    {rule.action === 'important' ? <><StarIcon size={11} /> Important</> : <><VolumeXIcon size={11} /> Muted</>}
                   </span>
                   <span className="rule-value">{rule.value}</span>
                   <button

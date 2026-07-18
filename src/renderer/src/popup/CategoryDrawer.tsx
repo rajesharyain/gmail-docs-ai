@@ -1,4 +1,5 @@
 import type { MailCategory } from '../../../shared/types'
+import { ChevronDownIcon, InboxIcon, PlusIcon, SectionIcon, SettingsIcon } from './Icons'
 import type { InboxSection } from './sections'
 
 function initials(name: string): string {
@@ -60,7 +61,7 @@ export function CategoryDrawer({
             {accountEmail && <span className="drawer-account-email">{accountEmail}</span>}
           </span>
           <button className="drawer-chevron" type="button" aria-label="Switch account" title="Switch account">
-            ⌄
+            <ChevronDownIcon size={14} />
           </button>
         </div>
 
@@ -75,7 +76,7 @@ export function CategoryDrawer({
             aria-label="Add category"
             title="Add category"
           >
-            +
+            <PlusIcon size={13} />
           </button>
         </div>
 
@@ -86,7 +87,7 @@ export function CategoryDrawer({
             onClick={() => onSelectCategory(null)}
           >
             <span className="drawer-cat-icon" aria-hidden>
-              📥
+              <InboxIcon size={15} />
             </span>
             <span className="drawer-cat-name">All Mail</span>
             <span className="drawer-cat-count">{totalCount}</span>
@@ -101,7 +102,7 @@ export function CategoryDrawer({
               onClick={() => onSelectCategory(section.category)}
             >
               <span className="drawer-cat-icon" aria-hidden>
-                {section.icon}
+                <SectionIcon icon={section.icon} size={15} />
               </span>
               <span className="drawer-cat-name">{section.label}</span>
               <span className="drawer-cat-count">{section.emailCount}</span>
@@ -113,7 +114,7 @@ export function CategoryDrawer({
         <div className="drawer-divider" />
 
         <button className="drawer-footer-item" type="button" onClick={onManageCategories}>
-          ⚙ Manage Categories
+          <SettingsIcon size={14} /> Manage Categories
         </button>
       </aside>
     </>
