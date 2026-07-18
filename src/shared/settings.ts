@@ -45,7 +45,9 @@ export const DEFAULT_RULES_SETTINGS: InboxRulesSettings = {
   senderRules: [],
   hiddenCategories: [],
   sectionsEnabled: true,
-  notifyLowAttention: false
+  notifyLowAttention: false,
+  autoDismissNoise: true,
+  fullMessagePreview: true
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -147,7 +149,17 @@ export function normalizeRulesSettings(raw: unknown): InboxRulesSettings {
       ? value.notifyLowAttention
       : DEFAULT_RULES_SETTINGS.notifyLowAttention
 
-  return { senderRules, hiddenCategories, sectionsEnabled, notifyLowAttention }
+  const autoDismissNoise =
+    typeof value.autoDismissNoise === 'boolean'
+      ? value.autoDismissNoise
+      : DEFAULT_RULES_SETTINGS.autoDismissNoise
+
+  const fullMessagePreview =
+    typeof value.fullMessagePreview === 'boolean'
+      ? value.fullMessagePreview
+      : DEFAULT_RULES_SETTINGS.fullMessagePreview
+
+  return { senderRules, hiddenCategories, sectionsEnabled, notifyLowAttention, autoDismissNoise, fullMessagePreview }
 }
 
 export function normalizeSettings(raw: Partial<Settings>): Settings {

@@ -115,9 +115,26 @@ test('deleteMessage moves the Gmail message to trash', async (t) => {
   assert.equal(hadContentType, false)
 })
 
-test('markMessagesRead reports per-message success and failure', async (t) => {
+test('markMessagesRead uses batchModify for multiple IDs and reports all as succeeded', async (t) => {
+  let batchUrl = ''
   t.mock.method(globalThis, 'fetch', (async (input: RequestInfo | URL) => {
+    batchUrl = String(input)
+    return jsonResponse({})
+  }) as typeof fetch)
+
+  const result = await markMessagesRead('token', ['a', 'b', 'c'])
+
+  assert.match(batchUrl, /batchModify/)
+  assert.deepEqual(result.succeededIds, ['a', 'b', 'c'])
+  assert.deepEqual(result.failedIds, [])
+})
+
+test('markMessagesRead falls back to individual calls on batchModify failure', async (t) => {
+  let callCount = 0
+  t.mock.method(globalThis, 'fetch', (async (input: RequestInfo | URL) => {
+    callCount++
     const url = String(input)
+    if (url.includes('batchModify')) return jsonResponse({ error: { message: 'Fail' } }, { status: 500 })
     if (url.includes('bad')) return jsonResponse({ error: { message: 'Missing' } }, { status: 404 })
     return jsonResponse({})
   }) as typeof fetch)
@@ -126,6 +143,7 @@ test('markMessagesRead reports per-message success and failure', async (t) => {
 
   assert.deepEqual(result.succeededIds, ['good-1', 'good-2'])
   assert.deepEqual(result.failedIds, ['bad-1'])
+  assert.ok(callCount >= 4) // 1 batch + 3 individual fallback
 })
 
 test('searchMessages uses Gmail q search and maps read state', async (t) => {

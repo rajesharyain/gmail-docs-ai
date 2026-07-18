@@ -98,7 +98,9 @@ test('normalizes rules settings, dropping malformed sender rules and unknown cat
       ],
       hiddenCategories: ['noise', 'promotions'],
       sectionsEnabled: false,
-      notifyLowAttention: true
+      notifyLowAttention: true,
+      autoDismissNoise: true,
+      fullMessagePreview: true
     }
   )
 })
@@ -108,6 +110,8 @@ test('defaults rules settings to empty (sections on, low-attention notifications
     senderRules: [],
     hiddenCategories: [],
     sectionsEnabled: true,
-    notifyLowAttention: false
+    notifyLowAttention: false,
+    autoDismissNoise: true,
+    fullMessagePreview: true
   })
 })

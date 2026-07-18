@@ -1,9 +1,12 @@
 import { logger } from './logger'
 import {
   archiveMessage,
+  archiveMessages,
   deleteMessage,
+  deleteMessages,
   markMessageRead,
   markMessagesRead,
+  markMessagesReadAndArchive,
   searchMessages
 } from './graph'
 import type { EmailActionKind, EmailSummary, InboxState } from '../shared/types'
@@ -52,6 +55,13 @@ export class EmailActions {
     await this.runSingle(id, 'delete', (token) => deleteMessage(token, id))
   }
 
+  async done(id: string): Promise<void> {
+    await this.runSingle(id, 'done', async (token) => {
+      await markMessageRead(token, id)
+      await archiveMessage(token, id)
+    })
+  }
+
   /** Marks every currently visible/fetched email read — bounded to what's
    *  actually on screen, never the whole mailbox's unread backlog. */
   async markAllVisibleRead(): Promise<void> {
@@ -80,21 +90,57 @@ export class EmailActions {
     }
   }
 
-  /** Sequential, not Promise.all — each call does its own read-modify-write
-   *  of the shared in-memory state, so running them concurrently risks one
-   *  call's removal clobbering another's based on a stale snapshot. */
-  async archiveMany(ids: string[]): Promise<void> {
-    for (const id of ids) await this.archive(id)
-  }
-
-  async deleteMany(ids: string[]): Promise<void> {
-    for (const id of ids) await this.delete(id)
-  }
-
   async bulkAction(ids: string[], action: EmailActionKind): Promise<void> {
-    if (action === 'markRead') await this.markManyRead(ids)
-    else if (action === 'archive') await this.archiveMany(ids)
-    else await this.deleteMany(ids)
+    if (ids.length === 0) return
+    if (ids.length === 1) {
+      if (action === 'markRead') await this.markRead(ids[0])
+      else if (action === 'archive') await this.archive(ids[0])
+      else if (action === 'done') await this.done(ids[0])
+      else await this.delete(ids[0])
+      return
+    }
+
+    const token = await this.options.auth.getAccessToken()
+    if (!token) return
+
+    const emailsBeforeRemoval = this.options.getState().emails
+    let result: { succeededIds: string[]; failedIds: string[] }
+
+    try {
+      if (action === 'markRead') {
+        result = await markMessagesRead(token, ids)
+      } else if (action === 'archive') {
+        result = await archiveMessages(token, ids)
+      } else if (action === 'done') {
+        result = await markMessagesReadAndArchive(token, ids)
+      } else {
+        result = await deleteMessages(token, ids)
+      }
+    } catch (err) {
+      logger.warn('Bulk action failed entirely', {
+        action,
+        count: ids.length,
+        error: err instanceof Error ? err.message : String(err)
+      })
+      return
+    }
+
+    if (result.failedIds.length > 0) {
+      logger.warn('Some messages failed in bulk action', {
+        action,
+        failedCount: result.failedIds.length
+      })
+    }
+
+    for (const id of result.succeededIds) this.options.markSuppressed(id)
+    if (action !== 'markRead') {
+      const learningKind = action === 'done' ? 'archive' : action
+      for (const id of result.succeededIds) {
+        const email = emailsBeforeRemoval.find((e) => e.id === id)
+        if (email) this.options.recordLearning?.(email, learningKind as 'archive' | 'delete')
+      }
+    }
+    this.removeFromState(result.succeededIds)
   }
 
   async search(query: string): Promise<EmailSummary[]> {
@@ -120,9 +166,9 @@ export class EmailActions {
       await action(token)
       this.options.markSuppressed(id)
       if (kind !== 'markRead') {
-        // Look the email up before removal — after removeFromState it's gone.
         const email = this.options.getState().emails.find((e) => e.id === id)
-        if (email) this.options.recordLearning?.(email, kind)
+        const learningKind = kind === 'done' ? 'archive' : kind
+        if (email) this.options.recordLearning?.(email, learningKind)
       }
       this.removeFromState([id])
     } catch (err) {

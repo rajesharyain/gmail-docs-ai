@@ -1,6 +1,7 @@
 import { app, powerMonitor } from 'electron'
 import { join } from 'path'
-import type { InboxState, Settings } from '../shared/types'
+import type { EmailSummary, InboxState, Settings } from '../shared/types'
+import { classifyEmail } from '../shared/mailIntelligence'
 import {
   AIConnectionTester,
   AICredentialStore,
@@ -15,6 +16,8 @@ import { AuthManager } from './auth'
 import { isConfigured } from './authConfig'
 import { EmailActions } from './emailActions'
 import { EmailOpener } from './emailOpener'
+import { fetchMessageBody } from './graph'
+import { StatsCache } from './statsCache'
 import { InboxStateStore } from './inboxStateStore'
 import { LearningStore } from './learning'
 import { registerIpcHandlers } from './ipcRouter'
@@ -44,8 +47,26 @@ const notifyNewMail = createNewMailNotifier(() => windows.showPopup())
 const sync = new SyncEngine(auth, setState, notifyNewMail, (emails) => {
   void classificationService?.classifyAmbiguous(emails)
   void classificationService?.analyzeInsight(emails)
+  autoDismissLowPriority(emails)
 })
+
+function autoDismissLowPriority(emails: EmailSummary[]): void {
+  const settings = readSettings()
+  if (!settings.rules.autoDismissNoise) return
+  const senderRules = settings.rules.senderRules
+  const noiseIds = emails
+    .filter((e) => {
+      const insight = classifyEmail(e, senderRules)
+      return insight.category === 'promotions' || insight.category === 'noise'
+    })
+    .map((e) => e.id)
+  if (noiseIds.length > 0) {
+    logger.info('Auto-dismissing low-priority emails', { count: noiseIds.length })
+    void emailActions.markManyRead(noiseIds)
+  }
+}
 const learning = new LearningStore()
+const statsCache = new StatsCache()
 const emailOpener = new EmailOpener({
   getState: () => inbox.getSnapshot(),
   setState,
@@ -126,6 +147,7 @@ async function handleSignIn() {
 
 async function handleSignOut() {
   sync.clearLocal()
+  statsCache.clear()
   await auth.signOut()
   inbox.reset()
   logger.info('Signed out')
@@ -210,9 +232,26 @@ if (!gotSingleInstanceLock) {
       markEmailRead: (id) => void emailActions.markRead(id),
       archiveEmail: (id) => void emailActions.archive(id),
       deleteEmail: (id) => void emailActions.delete(id),
+      doneEmail: (id) => void emailActions.done(id),
       markAllVisibleRead: () => void emailActions.markAllVisibleRead(),
       bulkEmailAction: (ids, action) => void emailActions.bulkAction(ids, action),
       searchMail: (query) => emailActions.search(query),
+      fetchEmailBody: async (id) => {
+        const token = await auth.getAccessToken()
+        if (!token) return ''
+        return fetchMessageBody(token, id)
+      },
+      fetchInboxStats: async () => {
+        const cached = statsCache.getCached()
+        if (cached) {
+          const token = await auth.getAccessToken()
+          if (token) void statsCache.refresh(token)
+          return cached
+        }
+        const token = await auth.getAccessToken()
+        if (!token) return { totalEmails: 0, trashEmails: 0, imageAttachments: 0, videoAttachments: 0, imageSize: 0, videoSize: 0 }
+        return statsCache.refresh(token)
+      },
       getRuleSuggestions: () => learning.suggestions(readSettings().rules.senderRules),
       dismissRuleSuggestion: (id) => learning.dismiss(id),
       signIn: () => void handleSignIn(),

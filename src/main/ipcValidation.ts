@@ -59,10 +59,10 @@ export function sanitizeSuggestionId(input: unknown): string | null {
 
 /** Matches the fetch page size — a bulk action can never exceed what's ever
  *  visible in the popup at once. */
-const MAX_BULK_IDS = 25
+const MAX_BULK_IDS = 100
 
 export function isEmailActionKind(input: unknown): input is EmailActionKind {
-  return input === 'markRead' || input === 'archive' || input === 'delete'
+  return input === 'markRead' || input === 'archive' || input === 'delete' || input === 'done'
 }
 
 export function sanitizeBulkEmailAction(

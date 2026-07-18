@@ -6,6 +6,7 @@ import {
   type EmailActionKind,
   type EmailSummary,
   type InboxState,
+  type InboxStats,
   type RuleSuggestion,
   type Settings
 } from '../shared/types'
@@ -37,9 +38,12 @@ interface IpcRouterOptions {
   markEmailRead: (id: string) => void
   archiveEmail: (id: string) => void
   deleteEmail: (id: string) => void
+  doneEmail: (id: string) => void
   markAllVisibleRead: () => void
   bulkEmailAction: (ids: string[], action: EmailActionKind) => void
   searchMail: (query: string) => Promise<EmailSummary[]>
+  fetchEmailBody: (id: string) => Promise<string>
+  fetchInboxStats: () => Promise<InboxStats>
   getRuleSuggestions: () => RuleSuggestion[]
   dismissRuleSuggestion: (id: string) => void
   signIn: () => void
@@ -62,6 +66,9 @@ export function registerIpcHandlers(options: IpcRouterOptions): void {
   ipcMain.on(IPC.emailDelete, (_e, id: unknown) => {
     if (isEmailId(id)) options.deleteEmail(id)
   })
+  ipcMain.on(IPC.emailDone, (_e, id: unknown) => {
+    if (isEmailId(id)) options.doneEmail(id)
+  })
   ipcMain.on(IPC.emailMarkAllRead, options.markAllVisibleRead)
   ipcMain.on(IPC.emailBulkAction, (_e, payload: unknown) => {
     const clean = sanitizeBulkEmailAction(payload)
@@ -72,6 +79,11 @@ export function registerIpcHandlers(options: IpcRouterOptions): void {
     if (!clean) return []
     return options.searchMail(clean)
   })
+  ipcMain.handle(IPC.emailBody, (_e, id: unknown) => {
+    if (!isEmailId(id)) return ''
+    return options.fetchEmailBody(id)
+  })
+  ipcMain.handle(IPC.inboxStats, () => options.fetchInboxStats())
   ipcMain.handle(IPC.settingsGet, options.getSettings)
   ipcMain.on(IPC.settingsSet, (_e, patch: unknown) => {
     options.setSettings(sanitizeSettingsPatch(patch))

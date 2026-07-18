@@ -7,6 +7,7 @@ import {
   EmailSummary,
   IPC,
   InboxState,
+  InboxStats,
   RuleSuggestion,
   Settings
 } from '../shared/types'
@@ -20,10 +21,13 @@ const api = {
   markEmailRead: (id: string) => ipcRenderer.send(IPC.emailMarkRead, id),
   archiveEmail: (id: string) => ipcRenderer.send(IPC.emailArchive, id),
   deleteEmail: (id: string) => ipcRenderer.send(IPC.emailDelete, id),
+  doneEmail: (id: string) => ipcRenderer.send(IPC.emailDone, id),
   markAllVisibleRead: () => ipcRenderer.send(IPC.emailMarkAllRead),
   bulkEmailAction: (ids: string[], action: EmailActionKind) =>
     ipcRenderer.send(IPC.emailBulkAction, { ids, action }),
   searchMail: (query: string): Promise<EmailSummary[]> => ipcRenderer.invoke(IPC.emailSearch, query),
+  fetchEmailBody: (id: string): Promise<string> => ipcRenderer.invoke(IPC.emailBody, id),
+  fetchInboxStats: (): Promise<InboxStats> => ipcRenderer.invoke(IPC.inboxStats),
   getRuleSuggestions: (): Promise<RuleSuggestion[]> => ipcRenderer.invoke(IPC.learningSuggestions),
   dismissRuleSuggestion: (id: string) => ipcRenderer.send(IPC.learningDismiss, id),
   getSettings: (): Promise<Settings> => ipcRenderer.invoke(IPC.settingsGet),

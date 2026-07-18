@@ -34,8 +34,8 @@ export interface AccountSummary {
   email: string
 }
 
-/** The three direct mailbox-writing actions available on an email. */
-export type EmailActionKind = 'markRead' | 'archive' | 'delete'
+/** The direct mailbox-writing actions available on an email. */
+export type EmailActionKind = 'markRead' | 'archive' | 'delete' | 'done'
 
 export type MailCategory =
   | 'important'
@@ -153,6 +153,10 @@ export interface InboxRulesSettings {
    * on opts back into the old "notify for everything" behavior.
    */
   notifyLowAttention: boolean
+  /** Auto-mark-read low-priority categories (promotions, noise) on sync so they disappear from the inbox. */
+  autoDismissNoise: boolean
+  /** Show the full message body in the preview popover (fetched from Gmail on demand). */
+  fullMessagePreview: boolean
 }
 
 export type AIProviderId = 'none' | 'github-models' | 'gemini' | 'groq' | 'custom'
@@ -225,6 +229,17 @@ export interface InboxState {
   errorMessage?: string
 }
 
+export interface InboxStats {
+  totalEmails: number
+  trashEmails: number
+  imageAttachments: number
+  videoAttachments: number
+  /** Estimated total size of image attachments in bytes. */
+  imageSize: number
+  /** Estimated total size of video attachments in bytes. */
+  videoSize: number
+}
+
 /** IPC channel names — single source of truth. */
 export const IPC = {
   toggleP: 'popup:toggle',
@@ -236,9 +251,12 @@ export const IPC = {
   emailMarkRead: 'email:mark-read',
   emailArchive: 'email:archive',
   emailDelete: 'email:delete',
+  emailDone: 'email:done',
   emailMarkAllRead: 'email:mark-all-read',
   emailBulkAction: 'email:bulk-action',
   emailSearch: 'email:search',
+  emailBody: 'email:body',
+  inboxStats: 'inbox:stats',
   settingsGet: 'settings:get',
   settingsSet: 'settings:set',
   aiCredentialStatus: 'ai:credential-status',

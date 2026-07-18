@@ -119,10 +119,11 @@ test('markAllVisibleRead is a no-op with an empty list', async (t) => {
 })
 
 test('markAllVisibleRead only removes and suppresses the messages Gmail confirmed, keeping failures visible', async (t) => {
+  // batchModify fails, then individual fallback fails for 'b'
   t.mock.method(globalThis, 'fetch', (async (input: RequestInfo | URL) => {
-    if (String(input).includes('/messages/b/modify')) {
-      return jsonResponse({ error: { message: 'Missing' } }, { status: 404 })
-    }
+    const url = String(input)
+    if (url.includes('batchModify')) return jsonResponse({ error: { message: 'Fail' } }, { status: 500 })
+    if (url.includes('/messages/b/modify')) return jsonResponse({ error: { message: 'Missing' } }, { status: 404 })
     return jsonResponse({})
   }) as typeof fetch)
   const { actions, getState, suppressedIds } = harness([
@@ -158,7 +159,7 @@ test('markManyRead only acts on the given subset, not the whole visible list', a
   assert.deepEqual(suppressedIds, ['a', 'c'])
 })
 
-test('archiveMany and deleteMany act sequentially on a given subset', async (t) => {
+test('bulkAction archive and delete use batch APIs on a given subset', async (t) => {
   t.mock.method(globalThis, 'fetch', (async () => jsonResponse({})) as typeof fetch)
   const { actions, getState, suppressedIds } = harness([
     email({ id: 'a' }),
@@ -167,8 +168,8 @@ test('archiveMany and deleteMany act sequentially on a given subset', async (t) 
     email({ id: 'd' })
   ])
 
-  await actions.archiveMany(['a', 'b'])
-  await actions.deleteMany(['c'])
+  await actions.bulkAction(['a', 'b'], 'archive')
+  await actions.bulkAction(['c'], 'delete')
 
   assert.deepEqual(
     getState().emails.map((e) => e.id),

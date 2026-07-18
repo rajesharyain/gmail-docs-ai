@@ -87,7 +87,9 @@ test('sanitizes rules patches', () => {
         ],
         hiddenCategories: ['noise'],
         sectionsEnabled: false,
-        notifyLowAttention: true
+        notifyLowAttention: true,
+        autoDismissNoise: true,
+        fullMessagePreview: true
       }
     }
   )
@@ -154,11 +156,15 @@ test('sanitizes bulk email action payloads, filtering bad ids and rejecting bad 
     ids: ['1', '3'],
     action: 'archive'
   })
+  assert.deepEqual(sanitizeBulkEmailAction({ ids: ['1'], action: 'done' }), {
+    ids: ['1'],
+    action: 'done'
+  })
   assert.equal(sanitizeBulkEmailAction({ ids: ['1'], action: 'snooze' }), null)
   assert.equal(sanitizeBulkEmailAction({ ids: [], action: 'markRead' }), null)
   assert.equal(sanitizeBulkEmailAction({ ids: 'not-an-array', action: 'markRead' }), null)
   assert.equal(
-    sanitizeBulkEmailAction({ ids: Array.from({ length: 26 }, (_, i) => String(i)), action: 'delete' }),
+    sanitizeBulkEmailAction({ ids: Array.from({ length: 101 }, (_, i) => String(i)), action: 'delete' }),
     null
   )
   assert.equal(sanitizeBulkEmailAction(null), null)
