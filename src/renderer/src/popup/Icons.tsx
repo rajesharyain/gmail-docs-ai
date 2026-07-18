@@ -1,0 +1,93 @@
+import {
+  AlertCircle,
+  Archive,
+  BellOff,
+  Briefcase,
+  Calendar,
+  Check,
+  CheckCheck,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Film,
+  Home,
+  Image,
+  Inbox,
+  LogOut,
+  Mail,
+  MailOpen,
+  Menu,
+  MoreHorizontal,
+  Plus,
+  Power,
+  RefreshCw,
+  Search,
+  Settings,
+  Sparkles,
+  SquareCheck,
+  SquareMinus,
+  Star,
+  Tag,
+  Trash2,
+  VolumeX,
+  Wallet,
+  X,
+  Zap
+} from 'lucide-react'
+
+export {
+  AlertCircle as AlertCircleIcon,
+  Archive as ArchiveIcon,
+  BellOff as BellOffIcon,
+  Briefcase as BriefcaseIcon,
+  Calendar as CalendarIcon,
+  Check as CheckIcon,
+  CheckCheck as CheckCheckIcon,
+  ChevronDown as ChevronDownIcon,
+  ChevronRight as ChevronRightIcon,
+  Clock as ClockIcon,
+  Film as FilmIcon,
+  Home as HomeIcon,
+  Image as ImageIcon,
+  Inbox as InboxIcon,
+  LogOut as LogOutIcon,
+  Mail as MailIcon,
+  MailOpen as MailOpenIcon,
+  Menu as MenuIcon,
+  MoreHorizontal as MoreHorizontalIcon,
+  Plus as PlusIcon,
+  Power as PowerIcon,
+  RefreshCw as RefreshCwIcon,
+  Search as SearchIcon,
+  Settings as SettingsIcon,
+  Sparkles as SparklesIcon,
+  SquareCheck as SquareCheckIcon,
+  SquareMinus as SquareMinusIcon,
+  Star as StarIcon,
+  Tag as TagIcon,
+  Trash2 as Trash2Icon,
+  VolumeX as VolumeXIcon,
+  Wallet as WalletIcon,
+  X as XIcon,
+  Zap as ZapIcon
+}
+
+const SECTION_ICON_MAP: Record<string, typeof Zap> = {
+  'zap': Zap,
+  'wallet': Wallet,
+  'briefcase': Briefcase,
+  'calendar': Calendar,
+  'sparkles': Sparkles,
+  'home': Home,
+  'tag': Tag,
+  'bell-off': BellOff,
+  'clock': Clock,
+  'alert-circle': AlertCircle,
+  'inbox': Inbox
+}
+
+export function SectionIcon({ icon, size = 14, className }: { icon: string; size?: number; className?: string }) {
+  const Icon = SECTION_ICON_MAP[icon]
+  if (!Icon) return <span className={className}>{icon}</span>
+  return <Icon size={size} className={className} />
+}
