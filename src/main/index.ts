@@ -258,6 +258,7 @@ if (!gotSingleInstanceLock) {
       signOut: () => void handleSignOut()
     })
     inbox.subscribe((state) => windows.broadcastState(state))
+    statsCache.setUpdateCallback((stats) => windows.broadcastStats(stats))
 
     windows.createAll()
     syncLoginItem(readSettings().launchAtLogin)
