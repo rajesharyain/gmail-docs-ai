@@ -438,10 +438,23 @@ function sumAttachmentSizes(msg: GmailFullMessage, mimePrefix: string): number {
   return total
 }
 
-export async function fetchInboxStats(token: string): Promise<InboxStats> {
-  const [inboxLabel, trashLabel, imageCount, videoCount] = await Promise.all([
+export async function fetchInboxStatsQuick(token: string): Promise<InboxStats> {
+  const [inboxLabel, trashLabel] = await Promise.all([
     gmailGet<GmailLabel>(token, '/users/me/labels/INBOX'),
-    gmailGet<GmailLabel>(token, '/users/me/labels/TRASH'),
+    gmailGet<GmailLabel>(token, '/users/me/labels/TRASH')
+  ])
+  return {
+    totalEmails: inboxLabel.messagesTotal ?? 0,
+    trashEmails: trashLabel.messagesTotal ?? 0,
+    imageAttachments: 0,
+    videoAttachments: 0,
+    imageSize: 0,
+    videoSize: 0
+  }
+}
+
+export async function fetchInboxStatsAttachments(token: string): Promise<Pick<InboxStats, 'imageAttachments' | 'videoAttachments' | 'imageSize' | 'videoSize'>> {
+  const [imageCount, videoCount] = await Promise.all([
     searchCount(token, 'has:attachment filename:(jpg OR jpeg OR png OR gif OR webp OR heic)'),
     searchCount(token, 'has:attachment filename:(mp4 OR mov OR avi OR mkv OR webm)')
   ])
@@ -449,7 +462,6 @@ export async function fetchInboxStats(token: string): Promise<InboxStats> {
   let imageSize = 0
   let videoSize = 0
 
-  // Sample recent attachment messages to estimate sizes
   const sampleSize = 10
   const [imageIds, videoIds] = await Promise.all([
     gmailGet<GmailListResponse>(token, `/users/me/messages?${new URLSearchParams({
@@ -483,14 +495,7 @@ export async function fetchInboxStats(token: string): Promise<InboxStats> {
     videoSize = Math.round(avgSize * videoCount)
   }
 
-  return {
-    totalEmails: inboxLabel.messagesTotal ?? 0,
-    trashEmails: trashLabel.messagesTotal ?? 0,
-    imageAttachments: imageCount,
-    videoAttachments: videoCount,
-    imageSize,
-    videoSize
-  }
+  return { imageAttachments: imageCount, videoAttachments: videoCount, imageSize, videoSize }
 }
 
 export async function fetchGmailProfile(token: string): Promise<GmailProfile> {

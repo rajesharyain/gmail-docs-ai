@@ -1,6 +1,6 @@
 import { app, BrowserWindow, Menu, Tray, nativeImage, screen } from 'electron'
 import { join } from 'path'
-import { IPC, type InboxState } from '../shared/types'
+import { IPC, type InboxState, type InboxStats } from '../shared/types'
 
 const POPUP_W = 420
 const POPUP_H = 660
@@ -45,6 +45,12 @@ export class WindowManager {
       this.popup.webContents.send(IPC.inboxState, state)
     }
     this.updateTray(state)
+  }
+
+  broadcastStats(stats: InboxStats): void {
+    if (this.popup && !this.popup.isDestroyed()) {
+      this.popup.webContents.send(IPC.inboxStatsUpdate, stats)
+    }
   }
 
   private createTray(): void {

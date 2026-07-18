@@ -52,6 +52,13 @@ const api = {
     return () => {
       ipcRenderer.removeListener(IPC.inboxState, listener)
     }
+  },
+  onStatsUpdate: (cb: (stats: InboxStats) => void) => {
+    const listener = (_e: Electron.IpcRendererEvent, stats: InboxStats) => cb(stats)
+    ipcRenderer.on(IPC.inboxStatsUpdate, listener)
+    return () => {
+      ipcRenderer.removeListener(IPC.inboxStatsUpdate, listener)
+    }
   }
 }
 

@@ -2,7 +2,8 @@ import type { InboxStats } from '../shared/types'
 import {
   fetchGmailProfile,
   fetchHistory,
-  fetchInboxStats,
+  fetchInboxStatsAttachments,
+  fetchInboxStatsQuick,
   fetchLabelCounts,
   fetchMessageAttachmentMeta
 } from './graph'
@@ -20,9 +21,14 @@ interface CachedStats {
 
 export class StatsCache {
   private cache: CachedStats | null = null
+  private onUpdate: ((stats: InboxStats) => void) | null = null
 
   constructor() {
     this.cache = readJson<CachedStats | null>(CACHE_FILE, null)
+  }
+
+  setUpdateCallback(cb: (stats: InboxStats) => void): void {
+    this.onUpdate = cb
   }
 
   getCached(): InboxStats | null {
@@ -43,17 +49,29 @@ export class StatsCache {
 
   private async fullRefresh(token: string): Promise<InboxStats> {
     logger.info('Stats cache: performing full refresh')
-    const [stats, profile] = await Promise.all([
-      fetchInboxStats(token),
+    const [quickStats, profile] = await Promise.all([
+      fetchInboxStatsQuick(token),
       fetchGmailProfile(token)
     ])
     this.cache = {
-      stats,
+      stats: quickStats,
       historyId: profile.historyId ?? '',
       lastSyncedAt: new Date().toISOString()
     }
     this.persist()
-    return stats
+    this.onUpdate?.(quickStats)
+
+    fetchInboxStatsAttachments(token).then((attachments) => {
+      if (!this.cache) return
+      this.cache.stats = { ...this.cache.stats, ...attachments }
+      this.persist()
+      this.onUpdate?.(this.cache.stats)
+      logger.info('Stats cache: attachment data loaded in background')
+    }).catch((err) => {
+      logger.warn('Stats cache: background attachment fetch failed', err)
+    })
+
+    return quickStats
   }
 
   private async incrementalRefresh(token: string): Promise<InboxStats> {

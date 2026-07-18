@@ -257,6 +257,7 @@ export const IPC = {
   emailSearch: 'email:search',
   emailBody: 'email:body',
   inboxStats: 'inbox:stats',
+  inboxStatsUpdate: 'inbox:stats-update',
   settingsGet: 'settings:get',
   settingsSet: 'settings:set',
   aiCredentialStatus: 'ai:credential-status',
