@@ -1911,11 +1911,15 @@ body,
   display: flex;
   flex-direction: column;
   padding: 16px 12px 12px;
-  background: #23262d;
-  border-right: 0.5px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 8px 0 24px rgba(0, 0, 0, 0.35);
+  background: linear-gradient(180deg, rgba(38, 40, 48, 0.92) 0%, rgba(30, 32, 38, 0.96) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-right: 0.5px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    8px 0 24px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
   transform: translateX(-100%);
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
   pointer-events: none;
 }
 
@@ -1993,7 +1997,7 @@ body,
 .drawer-divider {
   height: 1px;
   margin: 12px 0;
-  background: rgba(255, 255, 255, 0.15);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.04) 100%);
   flex: none;
 }
 
@@ -2002,7 +2006,7 @@ body,
   align-items: center;
   justify-content: space-between;
   height: 20px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .drawer-section-title {
@@ -2041,14 +2045,14 @@ body,
 .drawer-cat-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .drawer-cat-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 36px;
+  gap: 10px;
+  height: 38px;
   padding: 0 10px;
   border: none;
   border-radius: 8px;
@@ -2058,16 +2062,17 @@ body,
   text-align: left;
   cursor: pointer;
   transition:
-    background-color 0.15s ease,
-    transform 0.1s ease;
+    background 0.18s ease,
+    transform 0.1s ease,
+    box-shadow 0.18s ease;
 }
 
 .drawer-cat-row:hover {
-  background: #2c3038;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .drawer-cat-row:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
 .drawer-cat-row:focus-visible {
@@ -2077,9 +2082,16 @@ body,
 
 .drawer-cat-icon {
   flex: none;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.06);
   font-size: 13px;
-  opacity: 0.85;
   line-height: 1;
+  transition: background 0.18s ease;
 }
 
 .drawer-cat-name {
@@ -2095,36 +2107,68 @@ body,
 
 .drawer-cat-count {
   flex: none;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #f5f5f7;
-  font-size: 11px;
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 10.5px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
+  transition: background 0.18s ease, color 0.18s ease;
 }
 
 .drawer-cat-row-selected {
-  background: rgba(100, 140, 190, 0.16);
+  background: linear-gradient(135deg, rgba(10, 132, 255, 0.14) 0%, rgba(10, 132, 255, 0.06) 100%);
+  box-shadow: inset 0 0 0 0.5px rgba(10, 132, 255, 0.2);
+}
+
+.drawer-cat-row-selected:hover {
+  background: linear-gradient(135deg, rgba(10, 132, 255, 0.18) 0%, rgba(10, 132, 255, 0.08) 100%);
 }
 
 .drawer-cat-row-selected .drawer-cat-name {
   font-weight: 600;
+  color: #ffffff;
 }
 
 .drawer-cat-row-selected .drawer-cat-icon {
-  opacity: 1;
+  background: rgba(10, 132, 255, 0.18);
+  color: #8ecbff;
 }
 
-/* Selection accent + badge tint reuse the same per-category colors as the
-   inbox's own section badges, so the drawer never invents a second palette. */
+.drawer-cat-row-selected .drawer-cat-count {
+  background: rgba(10, 132, 255, 0.22);
+  color: #a9d6ff;
+}
+
+/* Per-category accent gradients for selected state */
+.drawer-cat-row-selected.drawer-cat-important {
+  background: linear-gradient(135deg, rgba(255, 179, 64, 0.14) 0%, rgba(255, 179, 64, 0.04) 100%);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 179, 64, 0.18);
+}
+
+.drawer-cat-row-selected.drawer-cat-important .drawer-cat-icon {
+  background: rgba(255, 179, 64, 0.18);
+  color: #ffcd8a;
+}
+
 .drawer-cat-row-selected.drawer-cat-important .drawer-cat-count {
   background: rgba(255, 179, 64, 0.22);
   color: #ffcd8a;
+}
+
+.drawer-cat-row-selected.drawer-cat-finance {
+  background: linear-gradient(135deg, rgba(52, 199, 89, 0.14) 0%, rgba(52, 199, 89, 0.04) 100%);
+  box-shadow: inset 0 0 0 0.5px rgba(52, 199, 89, 0.18);
+}
+
+.drawer-cat-row-selected.drawer-cat-finance .drawer-cat-icon {
+  background: rgba(52, 199, 89, 0.18);
+  color: #8de8a3;
 }
 
 .drawer-cat-row-selected.drawer-cat-finance .drawer-cat-count {
@@ -2132,9 +2176,29 @@ body,
   color: #8de8a3;
 }
 
+.drawer-cat-row-selected.drawer-cat-jobs {
+  background: linear-gradient(135deg, rgba(191, 90, 242, 0.14) 0%, rgba(191, 90, 242, 0.04) 100%);
+  box-shadow: inset 0 0 0 0.5px rgba(191, 90, 242, 0.18);
+}
+
+.drawer-cat-row-selected.drawer-cat-jobs .drawer-cat-icon {
+  background: rgba(191, 90, 242, 0.18);
+  color: #dcaef8;
+}
+
 .drawer-cat-row-selected.drawer-cat-jobs .drawer-cat-count {
   background: rgba(191, 90, 242, 0.22);
   color: #dcaef8;
+}
+
+.drawer-cat-row-selected.drawer-cat-calendar {
+  background: linear-gradient(135deg, rgba(100, 210, 255, 0.14) 0%, rgba(100, 210, 255, 0.04) 100%);
+  box-shadow: inset 0 0 0 0.5px rgba(100, 210, 255, 0.18);
+}
+
+.drawer-cat-row-selected.drawer-cat-calendar .drawer-cat-icon {
+  background: rgba(100, 210, 255, 0.18);
+  color: #9fe3ff;
 }
 
 .drawer-cat-row-selected.drawer-cat-calendar .drawer-cat-count {
@@ -2142,9 +2206,29 @@ body,
   color: #9fe3ff;
 }
 
+.drawer-cat-row-selected.drawer-cat-work {
+  background: linear-gradient(135deg, rgba(10, 132, 255, 0.14) 0%, rgba(10, 132, 255, 0.04) 100%);
+  box-shadow: inset 0 0 0 0.5px rgba(10, 132, 255, 0.18);
+}
+
+.drawer-cat-row-selected.drawer-cat-work .drawer-cat-icon {
+  background: rgba(10, 132, 255, 0.18);
+  color: #a9d6ff;
+}
+
 .drawer-cat-row-selected.drawer-cat-work .drawer-cat-count {
   background: rgba(10, 132, 255, 0.22);
   color: #a9d6ff;
+}
+
+.drawer-cat-row-selected.drawer-cat-home {
+  background: linear-gradient(135deg, rgba(255, 159, 10, 0.14) 0%, rgba(255, 159, 10, 0.04) 100%);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 159, 10, 0.18);
+}
+
+.drawer-cat-row-selected.drawer-cat-home .drawer-cat-icon {
+  background: rgba(255, 159, 10, 0.18);
+  color: #ffcc95;
 }
 
 .drawer-cat-row-selected.drawer-cat-home .drawer-cat-count {
@@ -2159,6 +2243,7 @@ body,
 .drawer-footer-item {
   height: 36px;
   padding: 0 10px;
+  margin-top: 4px;
   border: none;
   border-radius: 8px;
   background: transparent;
@@ -2171,11 +2256,11 @@ body,
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background 0.18s ease, color 0.18s ease;
 }
 
 .drawer-footer-item:hover {
-  background: #2c3038;
+  background: rgba(255, 255, 255, 0.06);
   color: #f5f5f7;
 }
 
@@ -2190,7 +2275,9 @@ body,
   .popup-content,
   .drawer-backdrop,
   .category-drawer,
-  .drawer-cat-row {
+  .drawer-cat-row,
+  .drawer-cat-icon,
+  .drawer-cat-count {
     transition: none;
   }
 }
