@@ -1,19 +1,13 @@
-/**
- * Google identity configuration.
- *
- * Create a Google Cloud OAuth client for a Desktop app, then provide:
- *
- *   export GOOGLE_CLIENT_ID="..."
- *   export GOOGLE_CLIENT_SECRET="..."   # optional, if your client has one
- *
- * Enable these APIs in the same Google Cloud project:
- *
- * - Gmail API
- * - Google Drive API
- *
- * Gmail modify is required for mark-read, archive, and trash actions. Drive
- * remains metadata-only until cleanup actions are implemented.
- */
+import { config } from 'dotenv'
+import { join } from 'path'
+import { app } from 'electron'
+
+// Load .env from project root in dev, or from userData in production
+const envPath = app.isPackaged
+  ? join(app.getPath('userData'), '.env')
+  : join(process.cwd(), '.env')
+config({ path: envPath })
+
 export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? ''
 export const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? ''
 

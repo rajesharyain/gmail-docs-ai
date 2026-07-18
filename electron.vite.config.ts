@@ -7,7 +7,7 @@ export default defineConfig({
     build: {
       outDir: 'out/main',
       rollupOptions: {
-        external: ['sql.js']
+        external: ['sql.js', 'dotenv']
       }
     }
   },
