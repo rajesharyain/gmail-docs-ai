@@ -946,19 +946,20 @@ body,
 /* --- stats cards ------------------------------------------------------------- */
 .stats-cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  margin: 8px 10px 0;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 8px 12px;
+  margin: 8px 0 0;
 }
 
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 8px;
+  gap: 8px;
+  padding: 10px 12px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
-  border: 0.5px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .stat-icon {
@@ -976,7 +977,7 @@ body,
 }
 
 .stat-value {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.92);
   line-height: 1.2;
