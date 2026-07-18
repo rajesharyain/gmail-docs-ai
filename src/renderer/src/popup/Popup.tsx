@@ -31,6 +31,7 @@ import {
   RefreshCwIcon,
   SearchIcon,
   SettingsIcon,
+  ShieldCheckIcon,
   SectionIcon,
   SquareCheckIcon,
   SquareMinusIcon,
@@ -1500,16 +1501,19 @@ export function Popup() {
       ) : (
       <main className="email-list" aria-label="Unread email list">
         {signedOut ? (
-          <div className="empty">
-            <span className="empty-icon empty-lock" aria-hidden />
-            <p>Connect your Gmail account</p>
+          <div className="empty empty-signin">
+            <span className="empty-icon empty-shield" aria-hidden>
+              <ShieldCheckIcon size={20} />
+            </span>
+            <p className="empty-heading">Connect your Gmail account</p>
             <p className="empty-sub">Sign-in opens in your browser. Your session is encrypted on this Mac.</p>
             <button
-              className="signin-btn"
+              className="signin-btn google-signin-btn"
               onClick={() => window.notifier.signIn()}
               disabled={status === 'signing-in'}
               aria-label="Sign in with Google"
             >
+              <span className="google-g" aria-hidden>G</span>
               {status === 'signing-in' ? 'Waiting for browser…' : 'Sign in with Google'}
             </button>
           </div>
