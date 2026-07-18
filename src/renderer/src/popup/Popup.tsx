@@ -692,7 +692,6 @@ function EmailPreviewPopover({
 }) {
   const insight = classifyEmail(email, senderRules)
   const signal = primaryInsightLabel(insight)
-  const top = Math.max(76, Math.min(anchorY - 18, window.innerHeight - 292))
   const [fullBody, setFullBody] = useState<string | null>(null)
   const [loadingBody, setLoadingBody] = useState(false)
 
@@ -719,10 +718,10 @@ function EmailPreviewPopover({
     <div className="message-preview-layer" onMouseDown={onClose}>
       <aside
         className="message-preview"
-        style={{ top }}
         aria-label={`Preview: ${email.subject}`}
         onMouseDown={(e) => e.stopPropagation()}
       >
+        <div className="sheet-handle" aria-hidden />
         <header className="message-preview-header">
           <span
             className="message-preview-avatar"
