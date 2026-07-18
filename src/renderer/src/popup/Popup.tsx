@@ -764,7 +764,12 @@ function EmailPreviewPopover({
           </div>
           <h2 className="message-preview-subject">{email.subject}</h2>
           {fullMessagePreview && loadingBody && (
-            <p className="message-preview-text message-preview-loading">Loading full message...</p>
+            <div className="message-preview-text">
+              <span className="skeleton skeleton-line-full" />
+              <span className="skeleton skeleton-line-medium" />
+              <span className="skeleton skeleton-line-full" />
+              <span className="skeleton skeleton-line-short" />
+            </div>
           )}
           {fullMessagePreview && fullBody ? (
             <div className="message-preview-full">{fullBody}</div>
@@ -1417,8 +1422,16 @@ export function Popup() {
 
       {view === 'inbox' && !isSearching && !categoryFilter && !signedOut && (inboxStats || statsLoading) && (
         inboxStats ? <StatsCards stats={inboxStats} /> : (
-          <div className="stats-cards stats-cards-loading">
-            <div className="stat-card"><span className="stat-label">Loading stats...</span></div>
+          <div className="stats-cards">
+            {[0, 1, 2, 3].map((i) => (
+              <div className="stat-card" key={i}>
+                <span className="skeleton skeleton-icon" />
+                <span className="stat-info">
+                  <span className="skeleton skeleton-stat-value" />
+                  <span className="skeleton skeleton-stat-label" />
+                </span>
+              </div>
+            ))}
           </div>
         )
       )}
