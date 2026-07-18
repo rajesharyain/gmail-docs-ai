@@ -227,7 +227,8 @@ function EmailRow({
   selectMode,
   selected,
   onSelectRow,
-  onPreview
+  onPreview,
+  exiting = false
 }: {
   email: EmailSummary
   indented?: boolean
@@ -239,6 +240,7 @@ function EmailRow({
   selected: boolean
   onSelectRow: SelectHandler
   onPreview: (request: PreviewRequest) => void
+  exiting?: boolean
 }) {
   const insight = classifyEmail(email, senderRules)
   const unread = !email.isRead
@@ -270,7 +272,7 @@ function EmailRow({
     <article
       className={`email-card ${showInsights ? `priority-${insight.priority} category-${insight.category}` : ''} ${
         indented ? 'email-row-indented' : ''
-      } ${selected ? 'email-card-selected' : ''}`}
+      } ${selected ? 'email-card-selected' : ''} ${exiting ? 'email-card-exiting' : ''}`}
       title={signal ? `${signal.label}: ${insight.reasons.slice(0, 3).join(', ')}` : undefined}
     >
       <div
@@ -334,7 +336,8 @@ function GroupRow({
   selectMode,
   selectedIds,
   onSelectRow,
-  onPreview
+  onPreview,
+  exitingIds
 }: {
   group: EmailGroup
   showInsights: boolean
@@ -345,6 +348,7 @@ function GroupRow({
   selectedIds: Set<string>
   onSelectRow: SelectHandler
   onPreview: (request: PreviewRequest) => void
+  exitingIds: Set<string>
 }) {
   const [open, setOpen] = useState(false)
   const bodyId = `group-${group.key.replace(/[^a-z0-9_-]/gi, '-')}`
@@ -384,6 +388,7 @@ function GroupRow({
               selected={selectedIds.has(e.id)}
               onSelectRow={onSelectRow}
               onPreview={onPreview}
+              exiting={exitingIds.has(e.id)}
             />
           ))}
         </div>
@@ -413,7 +418,8 @@ function ListItemRow({
   selectMode,
   selectedIds,
   onSelectRow,
-  onPreview
+  onPreview,
+  exitingIds
 }: {
   item: ListItem
   showInsights: boolean
@@ -424,6 +430,7 @@ function ListItemRow({
   selectedIds: Set<string>
   onSelectRow: SelectHandler
   onPreview: (request: PreviewRequest) => void
+  exitingIds: Set<string>
 }) {
   return item.kind === 'group' ? (
     <GroupRow
@@ -436,6 +443,7 @@ function ListItemRow({
       selectedIds={selectedIds}
       onSelectRow={onSelectRow}
       onPreview={onPreview}
+      exitingIds={exitingIds}
     />
   ) : (
     <EmailRow
@@ -448,6 +456,7 @@ function ListItemRow({
       selected={selectedIds.has(item.email.id)}
       onSelectRow={onSelectRow}
       onPreview={onPreview}
+      exiting={exitingIds.has(item.email.id)}
     />
   )
 }
@@ -462,7 +471,8 @@ function SectionBlock({
   selectMode,
   selectedIds,
   onSelectRow,
-  onPreview
+  onPreview,
+  exitingIds
 }: {
   section: InboxSection
   showInsights: boolean
@@ -474,6 +484,7 @@ function SectionBlock({
   selectedIds: Set<string>
   onSelectRow: SelectHandler
   onPreview: (request: PreviewRequest) => void
+  exitingIds: Set<string>
 }) {
   const [open, setOpen] = useState(!section.defaultCollapsed)
   const bodyId = `section-${section.category}`
@@ -549,6 +560,7 @@ function SectionBlock({
               selectedIds={selectedIds}
               onSelectRow={onSelectRow}
               onPreview={onPreview}
+              exitingIds={exitingIds}
             />
           ))}
         </div>
@@ -578,7 +590,8 @@ function AttentionSectionBlock({
   selectMode,
   selectedIds,
   onSelectRow,
-  onPreview
+  onPreview,
+  exitingIds
 }: {
   section: AttentionSection
   showInsights: boolean
@@ -590,6 +603,7 @@ function AttentionSectionBlock({
   selectedIds: Set<string>
   onSelectRow: SelectHandler
   onPreview: (request: PreviewRequest) => void
+  exitingIds: Set<string>
 }) {
   const [open, setOpen] = useState(!section.defaultCollapsed)
   const bodyId = `attention-section-${section.kind}`
@@ -652,6 +666,7 @@ function AttentionSectionBlock({
               selectedIds={selectedIds}
               onSelectRow={onSelectRow}
               onPreview={onPreview}
+              exitingIds={exitingIds}
             />
           ))}
         </div>
@@ -1007,6 +1022,7 @@ export function Popup() {
   const [categoryFilter, setCategoryFilter] = useState<MailCategory | null>(null)
   const [suggestion, setSuggestion] = useState<RuleSuggestion | null>(null)
   const [preview, setPreview] = useState<PreviewRequest | null>(null)
+  const [exitingIds, setExitingIds] = useState<Set<string>>(new Set())
   const [inboxStats, setInboxStats] = useState<InboxStats | null>(null)
   const [statsLoading, setStatsLoading] = useState(false)
   const statsLoaded = useRef(false)
@@ -1045,6 +1061,12 @@ export function Popup() {
     if (view !== 'inbox') return
     const currentIds = new Set((state?.emails ?? []).map((e) => e.id))
     setSelectedIds((prev) => {
+      const next = new Set([...prev].filter((id) => currentIds.has(id)))
+      return next.size === prev.size ? prev : next
+    })
+    // Clean up exiting IDs for emails already removed from state
+    setExitingIds((prev) => {
+      if (prev.size === 0) return prev
       const next = new Set([...prev].filter((id) => currentIds.has(id)))
       return next.size === prev.size ? prev : next
     })
@@ -1230,6 +1252,10 @@ export function Popup() {
 
   const handleEmailAction = (email: EmailSummary, action: EmailActionKind) => {
     if (!confirmMailboxAction(action, 1, email)) return
+    // Trigger exit animation for actions that remove the email from the list
+    if (action === 'archive' || action === 'delete' || action === 'done') {
+      setExitingIds((prev) => new Set([...prev, email.id]))
+    }
     if (action === 'markRead') window.notifier.markEmailRead(email.id)
     else if (action === 'archive') window.notifier.archiveEmail(email.id)
     else if (action === 'done') window.notifier.doneEmail(email.id)
@@ -1270,6 +1296,10 @@ export function Popup() {
   const handleBulkAction = (action: EmailActionKind) => {
     if (selectedIds.size === 0) return
     if (!confirmMailboxAction(action, selectedIds.size)) return
+    // Trigger exit animation for actions that remove emails from the list
+    if (action === 'archive' || action === 'delete' || action === 'done') {
+      setExitingIds((prev) => new Set([...prev, ...selectedIds]))
+    }
     window.notifier.bulkEmailAction([...selectedIds], action)
     clearSelection()
   }
@@ -1277,6 +1307,10 @@ export function Popup() {
   const handleSectionAction = (ids: string[], action: EmailActionKind) => {
     if (ids.length === 0) return
     if (!confirmMailboxAction(action, ids.length)) return
+    // Trigger exit animation for actions that remove emails from the list
+    if (action === 'archive' || action === 'delete' || action === 'done') {
+      setExitingIds((prev) => new Set([...prev, ...ids]))
+    }
     window.notifier.bulkEmailAction(ids, action)
   }
 
@@ -1469,6 +1503,7 @@ export function Popup() {
                 selected={selectedIds.has(email.id)}
                 onSelectRow={onSelectRow}
                 onPreview={showPreview}
+                exiting={exitingIds.has(email.id)}
               />
             ))
           )}
@@ -1493,6 +1528,7 @@ export function Popup() {
                 selected={selectedIds.has(email.id)}
                 onSelectRow={onSelectRow}
                 onPreview={showPreview}
+                exiting={exitingIds.has(email.id)}
               />
             ))
           )}
@@ -1542,6 +1578,7 @@ export function Popup() {
                 selectedIds={selectedIds}
                 onSelectRow={onSelectRow}
                 onPreview={showPreview}
+                exitingIds={exitingIds}
               />
             ))}
             {sectionsAboveInbox.map((section) => (
@@ -1557,6 +1594,7 @@ export function Popup() {
                 selectedIds={selectedIds}
                 onSelectRow={onSelectRow}
                 onPreview={showPreview}
+                exitingIds={exitingIds}
               />
             ))}
             {otherItems.map((item) => (
@@ -1571,6 +1609,7 @@ export function Popup() {
                 selectedIds={selectedIds}
                 onSelectRow={onSelectRow}
                 onPreview={showPreview}
+                exitingIds={exitingIds}
               />
             ))}
             {sectionsBelowInbox.map((section) => (
@@ -1586,6 +1625,7 @@ export function Popup() {
                 selectedIds={selectedIds}
                 onSelectRow={onSelectRow}
                 onPreview={showPreview}
+                exitingIds={exitingIds}
               />
             ))}
           </>
@@ -1603,6 +1643,7 @@ export function Popup() {
                 selectedIds={selectedIds}
                 onSelectRow={onSelectRow}
                 onPreview={showPreview}
+                exitingIds={exitingIds}
               />
             ))}
           </>
