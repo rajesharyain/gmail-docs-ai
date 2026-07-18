@@ -1305,10 +1305,29 @@ body,
   opacity: 0.68;
 }
 
+/* --- email exit animation -------------------------------------------------- */
+@keyframes email-exit {
+  to {
+    transform: translateX(-30px);
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-bottom: 0;
+  }
+}
+
+.email-card-exiting {
+  animation: email-exit 250ms ease-out forwards;
+  pointer-events: none;
+  overflow: hidden;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .chevron,
   .icon-btn,
   .email-card,
+  .email-card-exiting,
   .floating-toolbar,
   .search-bar,
   .message-preview,
