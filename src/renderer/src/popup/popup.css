@@ -459,6 +459,10 @@ body,
   .row-menu-btn {
     opacity: 1;
   }
+
+  .section-actions {
+    opacity: 1;
+  }
 }
 
 .row-menu-list {
@@ -1072,8 +1076,9 @@ body,
 }
 
 .inbox-section + .inbox-section {
-  border-top: 0.5px solid rgba(255, 255, 255, 0.06);
-  padding-top: 2px;
+  margin-top: 6px;
+  border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+  padding-top: 6px;
 }
 
 .section-header-row {
@@ -1083,12 +1088,18 @@ body,
   display: flex;
   align-items: center;
   gap: 0;
+  padding: 10px 12px;
+  background: rgba(25, 26, 28, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.06);
 }
 
 .section-header-row .section-header {
   position: static;
   flex: 1;
   min-width: 0;
+  padding: 0;
+  background: transparent;
 }
 
 .section-actions {
@@ -1097,6 +1108,16 @@ body,
   align-items: center;
   gap: 4px;
   padding-right: 6px;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.section-header-row:hover .section-actions {
+  opacity: 1;
+}
+
+.section-header-row:focus-within .section-actions {
+  opacity: 1;
 }
 
 .section-action-btn {
@@ -1137,12 +1158,11 @@ body,
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 9px;
   padding: 6px 8px;
   border: none;
   border-radius: 8px;
-  background: rgba(25, 26, 28, 0.86);
-  backdrop-filter: blur(6px);
+  background: transparent;
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -1150,7 +1170,7 @@ body,
 }
 
 .section-header:hover {
-  background: rgba(38, 39, 42, 0.9);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .section-header:focus-visible {
@@ -1170,7 +1190,7 @@ body,
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  font-weight: 750;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: rgba(255, 255, 255, 0.6);
@@ -1285,7 +1305,8 @@ body,
   .email-card,
   .floating-toolbar,
   .search-bar,
-  .message-preview {
+  .message-preview,
+  .section-actions {
     transition: none;
     animation: none;
   }
