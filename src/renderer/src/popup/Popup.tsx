@@ -189,6 +189,7 @@ function RowMenu({
           >
             <Trash2Icon size={13} /> Delete
           </button>
+          <div className="menu-divider" role="separator" />
           <button
             type="button"
             role="menuitem"

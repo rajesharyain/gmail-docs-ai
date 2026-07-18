@@ -468,13 +468,16 @@ body,
   z-index: 20;
   min-width: 172px;
   background: rgba(32, 33, 36, 0.98);
-  border: 0.5px solid rgba(255, 255, 255, 0.16);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.2);
   padding: 4px;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  backdrop-filter: blur(12px);
 }
 
 .row-menu-item {
@@ -485,17 +488,17 @@ body,
   font-size: 12px;
   font-weight: 600;
   text-align: left;
-  padding: 7px 8px;
-  border-radius: 6px;
+  padding: 7px 10px;
+  border-radius: 5px;
   cursor: pointer;
   white-space: nowrap;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
 }
 
 .row-menu-item:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .row-menu-item:focus-visible {
@@ -507,6 +510,12 @@ body,
 .header-menu-list {
   top: 32px;
   min-width: 160px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(12px);
 }
 
 /* --- message preview ------------------------------------------------------- */
@@ -1467,6 +1476,15 @@ body,
 .row-menu-item-done {
   color: rgba(52, 199, 89, 0.95);
   font-weight: 600;
+  margin-bottom: 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+}
+
+.menu-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 3px 0;
 }
 
 .small-action-btn:hover:not(:disabled) {
